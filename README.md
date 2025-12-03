@@ -1,3 +1,23 @@
+---
+title: dir2md + Spicy — Repository to Markdown Converter
+emoji: "📂"
+colorFrom: blue
+colorTo: green
+sdk: gradio
+sdk_version: 5.45.0
+app_file: demo/app.py
+pinned: false
+license: mit
+short_description: Convert GitHub repos to LLM-friendly markdown + spicy risk blueprints
+tags:
+  - developer-tools
+  - markdown
+  - repository-analysis
+  - llm
+  - code-analysis
+  - python
+---
+
 # Dir2md +spicy
 
 ![Dir2md Logo](./dir2md-logo.png)
