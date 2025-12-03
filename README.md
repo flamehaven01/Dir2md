@@ -9,6 +9,7 @@ app_file: demo/app.py
 pinned: false
 license: mit
 short_description: Convert GitHub repos to LLM-friendly markdown + spicy risk blueprints
+short_description: LLM-ready markdown + spicy risk blueprints
 tags:
   - developer-tools
   - markdown
