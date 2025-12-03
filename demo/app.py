@@ -5,6 +5,12 @@ import shutil
 from pathlib import Path
 import os
 import json
+import sys
+
+# Ensure local dir2md package is importable in the HF Space
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from dir2md.core import generate_markdown_report, Config
 

@@ -1,6 +1,6 @@
 ---
-title: dir2md + Spicy — Repository to Markdown Converter
-emoji: "📂"
+title: dir2md + Spicy - Repository to Markdown Converter
+emoji: 📂
 colorFrom: blue
 colorTo: green
 sdk: gradio
@@ -8,7 +8,6 @@ sdk_version: 5.45.0
 app_file: demo/app.py
 pinned: false
 license: mit
-short_description: Convert GitHub repos to LLM-friendly markdown + spicy risk blueprints
 short_description: LLM-ready markdown + spicy risk blueprints
 tags:
   - developer-tools
@@ -19,7 +18,7 @@ tags:
   - python
 ---
 
-# Dir2md +spicy
+﻿# Dir2md +spicy
 
 ![Dir2md Logo](./dir2md-logo.png)
 
@@ -392,7 +391,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 Pro features are available under a separate commercial license.
 
 ---
-
-![Dir2md Logo](./dir2md-logo.png)
 
 Made with care by Flamehaven for developers who want their AI to understand their code.
