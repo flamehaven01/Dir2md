@@ -9,8 +9,11 @@ import sys
 
 # Ensure local dir2md package is importable in the HF Space
 ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+SRC = ROOT / "src"
+for path in (ROOT, SRC):
+    path_str = str(path)
+    if path_str not in sys.path:
+        sys.path.insert(0, path_str)
 
 from dir2md.core import generate_markdown_report, Config
 

@@ -4,10 +4,11 @@ import sys
 
 ROOT = Path(__file__).resolve().parent
 DEMO = ROOT / "demo"
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-if str(DEMO) not in sys.path:
-    sys.path.insert(0, str(DEMO))
+SRC = ROOT / "src"
+for path in (ROOT, DEMO, SRC):
+    path_str = str(path)
+    if path_str not in sys.path:
+        sys.path.insert(0, path_str)
 
 # Importing demo will launch the Gradio interface (demo.launch() is called inside).
 import demo.app  # noqa: F401,E402
