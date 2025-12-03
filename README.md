@@ -1,26 +1,6 @@
----
-license: mit
-language:
-- en
-- ko
-tags:
-- python
-- cli
-- markdown
-- llm
-- developer-tools
-- code-analysis
-- open-core
-title: dir2md Demo
-emoji: ""
-colorFrom: blue
-colorTo: green
-sdk: gradio
-sdk_version: 4.19.2
-app_file: demo/app.py
-pinned: false
----
-# Dir2md
+# Dir2md +spicy
+
+![Dir2md Logo](./dir2md-logo.png)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
@@ -31,7 +11,7 @@ pinned: false
 
 Dir2md analyzes directory structures and generates comprehensive markdown documentation optimized for large language models. It intelligently samples content, removes duplicates, and provides token-budget control to create the perfect context for AI-assisted development.
 
-**Legend**: [*] Core Feature | [#] Security | [!] Performance | [T] Configuration | [+] User Experience
+**Legend**: [*] Core Feature | [#] Security | [!] Performance | [T] Configuration | [+] User Experience | [o] Fresh in this release
 
 ## 1.1.0 Highlights
 
@@ -43,12 +23,14 @@ Dir2md analyzes directory structures and generates comprehensive markdown docume
 - **[&] Architecture**: Introduced `walker.py`, `selector.py`, `renderer.py`, `orchestrator.py` to reduce `core.py` coupling.
 - **[W] Release**: Added PyPI/TestPyPI release workflow and Docker usage notes.
 
-## Key Features
+## Key Features (with fresh highlights)
 
 - **[*] Smart Content Sampling**: Head/tail sampling with configurable token budgets.
 - **[*] Duplicate Detection**: SimHash-based deduplication to reduce noise.
-- **[#] Security First**: Enhanced secret masking for PEM blocks, AWS keys, bearer tokens, GitHub PATs, generic API keys, database URLs, JWTs, and OAuth secrets (advanced patterns in Pro).
+- **[#] Security First**: Enhanced secret masking for PEM blocks, AWS keys, bearer tokens, GitHub PATs, generic API keys, database URLs, JWTs, and OAuth secrets.
 - **[#] Custom Masking**: Add project-specific regular expressions via CLI flags, pattern files, or `pyproject.toml`.
+- **[o] Fresh**: `--fast` tree+manifest mode, default dual outputs (md + jsonl), spicy 5-level risk report with `--spicy` / `--spicy-strict`.
+- **[o] Fresh**: Modular pipeline (`walker`, `selector`, `renderer`, `orchestrator`) for lower coupling and easier extension.
 - **[!] Multiple Output Modes**: Reference, summary, or full inline content.
 - **[T] Highly Configurable**: Extensive filtering and customization options.
 - **[+] Developer Friendly**: Raw mode default for complete code visibility.
@@ -153,11 +135,11 @@ patterns = ["(?i)secret_key\\s*=\\s*[A-Za-z0-9]{16,}"]
 pattern_files = ["file://./.dir2md/patterns.txt"]
 ```
 
-**Key Features**:
-- Custom rules run **before** built-in masking (project overrides win)
-- Invalid regexes are skipped with warnings (other rules continue)
-- Supports JSON arrays, JSON objects with `patterns` key, or newline-delimited text
-- Cross-platform `file://` URI support (Windows: `file:///C:/path`, Unix: `file:///path`)
+**Masking specifics**:
+- Custom rules run before built-in masking (project overrides win).
+- Invalid regexes are skipped with warnings; other rules continue.
+- Supports JSON arrays, JSON objects with `patterns` key, or newline-delimited text.
+- Cross-platform `file://` URI support (Windows: `file:///C:/path`, Unix: `file:///path`).
 
 ### Output Example
 
@@ -214,7 +196,7 @@ pattern_files = ["file://./.dir2md/patterns.txt"]
 - HTML/PDF export options.
 - Team integration (CI/CD, PR bots).
 - Priority support.
-- Pricing and licensing: Individual $29/month or $290/year; Team (5 users) $99/month or $990/year; Enterprise plans available with custom commercial terms (see `FEATURES.md` for full details).
+- Pricing and licensing: Open and free to use; see `FEATURES.md` for capability notes.
 
 [Learn more about Pro features](FEATURES.md)
 
@@ -390,4 +372,6 @@ Pro features are available under a separate commercial license.
 
 ---
 
-Made with care for developers who want their AI to understand their code.
+![Dir2md Logo](./dir2md-logo.png)
+
+Made with care by Flamehaven for developers who want their AI to understand their code.

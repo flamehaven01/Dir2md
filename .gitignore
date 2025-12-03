@@ -52,6 +52,7 @@ venv_clean/
 .dir2md_cache/
 tmp/
 temp/
+RELEASE_NOTES_v1.0.4.md
 # Personal files to ignore
 ENGLISH_CONVERSION_COMPLETE.md
 build/
