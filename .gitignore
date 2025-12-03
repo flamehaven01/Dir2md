@@ -11,9 +11,11 @@ venv/
 .vscode/
 .ipynb_checkpoints/
 .dist/
+extra_assets/
 .build/
 .coverage
 .pytest_cache/
+.pytest_cache_local/
 
 # License and API Keys (Security)
 license.key
@@ -21,11 +23,9 @@ license.key
 api_keys.txt
 secrets.txt
 config.local.*
-
 # OS
 .DS_Store
 Thumbs.db
-
 # Output files - exclude test outputs but keep documentation
 *.manifest.json
 *_blueprint.md
@@ -36,27 +36,22 @@ example_*.md
 pro_*.md
 raw_*.md
 secure_*.md
-
 # Generated blueprint files
 PROJECT_BLUEPRINT.md
 DIR2MD_BLUEPRINT.md
 *.capsule.zip
-
 # Keep important documentation
 !README.md
 !FEATURES.md  
 !CURRENT_FEATURES.md
 !CONTRIBUTING.md
 !CHANGELOG.md
-
 # Virtual environment (large, not needed)
 venv_clean/
-
 # Additional ignores
 .dir2md_cache/
 tmp/
 temp/
-
 # Personal files to ignore
 ENGLISH_CONVERSION_COMPLETE.md
 USAGE_EXAMPLES.md

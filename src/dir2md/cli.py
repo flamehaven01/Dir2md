@@ -1,5 +1,12 @@
 from __future__ import annotations
-import argparse, zipfile, hashlib, os, json
+
+"""Command-line interface for dir2md."""
+
+import argparse
+import hashlib
+import json
+import os
+import zipfile
 from pathlib import Path
 from typing import Any
 
@@ -12,10 +19,12 @@ except ModuleNotFoundError:
         _toml_loader = None
 
 from .core import Config, generate_markdown_report
+from .orchestrator import run_pipeline
 from . import __version__
 
 # Load .env file if it exists (for Pro license and configuration)
 def load_env_file():
+    """Load nearest .env for Pro/license/config defaults."""
     current = Path.cwd()
     for parent in [current] + list(current.parents):
         env_file = parent / '.env'
@@ -32,12 +41,27 @@ def load_env_file():
 
 load_env_file()
 
+def _print_status(level: str, message: str, progress: str | None) -> None:
+    """Print status with optional progress verbosity."""
+    if progress == "none":
+        return
+    if progress == "dots":
+        if level in {"INFO", "WARN"}:
+            print(".", end="", flush=True)
+        else:
+            print(f"[{level}] {message}")
+        return
+    print(f"[{level}] {message}")
+
 DEFAULT_OUTPUT = "PROJECT_BLUEPRINT.md"
 DEFAULT_EXCLUDES = [
     ".git",
     "__pycache__",
     "node_modules",
     ".venv",
+    "venv",
+    "venv_clean",
+    ".pytest_cache",
     "build",
     "dist",
     "*.pyc",
@@ -83,6 +107,7 @@ _CONFIG_KEYS = {
 
 
 def positive_int(v: str) -> int:
+    """Argparse converter that enforces positive integers."""
     try:
         iv = int(v)
     except ValueError:
@@ -93,6 +118,7 @@ def positive_int(v: str) -> int:
 
 
 def _load_pyproject_config() -> dict[str, Any]:
+    """Read [tool.dir2md] section from nearest pyproject.toml."""
     if _toml_loader is None:
         return {}
 
@@ -226,13 +252,16 @@ def _resolve_custom_mask_patterns(explicit: list[str] | None, files: list[str] |
 
 
 def main(argv: list[str] | None = None) -> int:
+    """CLI entrypoint for dir2md."""
     config_from_file = _load_pyproject_config()
 
     ap = argparse.ArgumentParser(prog="dir2md", description="Directory -> Markdown exporter with LLM optimization")
     ap.add_argument("path", nargs="?", default=".")
     ap.add_argument("-o", "--output")
 
-    ap.add_argument("--preset", choices=["iceberg", "pro", "raw"], help="Preset mode: iceberg/pro/raw")
+    ap.add_argument("--preset", choices=["pro", "raw"], help="Preset mode: pro/raw")
+    ap.add_argument("--ai-mode", action="store_true", help="Enable AI-friendly mode (ref, capped budget, query prioritization)")
+    ap.add_argument("--fast", action="store_true", help="Skip file contents; emit tree + manifest only")
 
     ap.add_argument("--llm-mode", choices=["off", "ref", "summary", "inline"])
     ap.add_argument("--budget-tokens", type=int)
@@ -250,6 +279,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--follow-symlinks", action="store_true")
     ap.add_argument("--max-bytes", type=positive_int)
     ap.add_argument("--max-lines", type=positive_int)
+    ap.add_argument("--query", help="Optional search query to prioritize matching files/snippets")
 
     ap.add_argument("--emit-manifest", action="store_true", help="Write JSON manifest (raw preset overrides to off)")
     ap.add_argument("--stats", action="store_true")
@@ -259,6 +289,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--masking", choices=["off", "basic", "advanced"], help="Secret masking mode (default: basic, advanced requires Pro license)")
     ap.add_argument("--mask-pattern", action="append", dest="mask_patterns", help="Additional custom regex patterns to mask (applies alongside built-in rules)")
     ap.add_argument("--mask-pattern-file", action="append", dest="mask_pattern_files", help="Load custom mask regex patterns from file (JSON array or newline separated list). Supports file:// URIs.")
+    ap.add_argument("--output-format", choices=["md", "json", "jsonl", "both"], help="Output format: md (human), json/jsonl (LLM); default produces md+jsonl")
+    ap.add_argument("--progress", choices=["full", "dots", "none"], help="Progress verbosity for CLI output (default: dots)")
+    ap.add_argument("--spicy", action="store_true", help="Enable spicy risk report (severity counts and findings)")
+    ap.add_argument("--spicy-strict", action="store_true", help="Exit non-zero if spicy finds high/critical findings")
 
     ap.add_argument("-V", "--version", action="version", version=f"dir2md {__version__}")
 
@@ -272,10 +306,16 @@ def main(argv: list[str] | None = None) -> int:
     if ns.output:
         output = Path(ns.output)
     else:
-        if root.is_dir():
-            output = root / f"{root.name}.md"
+        suffix = ".md"
+        timestamp = Path.cwd().anchor  # placeholder, replaced below
+        # generate timestamp string
+        import datetime
+        ts = datetime.datetime.now().strftime("%Y%m%d")
+        stem = root.name if root.is_dir() else "PROJECT"
+        if ns.spicy:
+            output = root / f"{stem}_blueprint_spicy_{ts}{suffix}"
         else:
-            output = Path(DEFAULT_OUTPUT).resolve()
+            output = root / f"{stem}_blueprint_{ts}{suffix}"
     only_ext = {e.strip().lstrip('.') for e in (ns.only_ext or "").split(',') if e.strip()} or None
 
     cfg = Config(
@@ -292,7 +332,7 @@ def main(argv: list[str] | None = None) -> int:
         only_ext=only_ext,
         add_stats=bool(ns.stats or False),
         add_toc=False,
-        llm_mode=(ns.llm_mode or "ref"),
+        llm_mode=(ns.llm_mode or "summary"),
         budget_tokens=int(ns.budget_tokens) if ns.budget_tokens is not None else 6000,
         max_file_tokens=int(ns.max_file_tokens) if ns.max_file_tokens is not None else 1200,
         dedup_bits=int(ns.dedup) if ns.dedup is not None else 16,
@@ -308,30 +348,72 @@ def main(argv: list[str] | None = None) -> int:
             list(ns.mask_patterns or []),
             list(ns.mask_pattern_files or []),
         ),
+        query=ns.query,
+        output_format=str(ns.output_format or "md"),
+        spicy=bool(ns.spicy),
+        # Note: progress handled in CLI output, not in Config
     )
 
-    md = generate_markdown_report(cfg)
+    # Apply ai-mode/fast flags (mapped onto config)
+    if ns.ai_mode:
+        cfg.preset = "ai"
+    if ns.fast:
+        cfg.preset = "fast"
 
-    if ns.dry_run:
-        h = hashlib.sha256(md.encode('utf-8')).hexdigest()[:10]
-        print(f"[dry-run] preset={cfg.preset} mode={cfg.llm_mode} est_tokens~{cfg.budget_tokens} md={h}")
-        return 0
+    # Friendly one-line plan summary after preset application
+    plan_summary = (
+        f"preset={cfg.preset} "
+        f"llm_mode={cfg.llm_mode} "
+        f"format={cfg.output_format} "
+        f"query={'yes' if cfg.query else 'no'} "
+        f"contents={'on' if cfg.include_contents else 'off'} "
+        f"manifest={'on' if cfg.emit_manifest else 'off'} "
+        f"spicy={'on' if cfg.spicy else 'off'}"
+    )
+    _print_status("INFO", f"PLAN {plan_summary}", ns.progress or "dots")
 
-    output.write_text(md, encoding="utf-8")
-    if ns.capsule:
-        with zipfile.ZipFile(output.with_suffix('.capsule.zip'), 'w') as z:
-            z.write(output)
-            if cfg.emit_manifest and output.with_suffix('.manifest.json').exists():
-                z.write(output.with_suffix('.manifest.json'))
-    try:
-        print(f"[dir2md] Wrote: {output}")
-    except UnicodeEncodeError:
-        print("[dir2md] Wrote: (File path contains unprintable characters, but the file was likely created successfully)")
+    outputs: dict[str, str] = {}
+    # If user requests both, run twice with different formats.
+    targets = []
+    if cfg.output_format in [None, "md"]:
+        targets = ["md", "jsonl"]
+    elif cfg.output_format == "both":
+        targets = ["md", "jsonl"]
+    else:
+        targets = [cfg.output_format]
+
+    rendered = run_pipeline(cfg, targets)
+
+    for fmt, content in rendered.items():
+        out_path = output.with_suffix(f".{fmt}") if fmt != "md" else output.with_suffix(".md")
+
+        if ns.dry_run:
+            h = hashlib.sha256(content.encode('utf-8')).hexdigest()[:10]
+            _print_status("INFO", f"DRY_RUN format={fmt} preset={cfg.preset} mode={cfg.llm_mode} est_tokens~{cfg.budget_tokens} md={h}", ns.progress or "dots")
+            continue
+
+        out_path.write_text(content, encoding="utf-8")
+        if ns.capsule and fmt == "md":
+            with zipfile.ZipFile(out_path.with_suffix('.capsule.zip'), 'w') as z:
+                z.write(out_path)
+                if cfg.emit_manifest and out_path.with_suffix('.manifest.json').exists():
+                    z.write(out_path.with_suffix('.manifest.json'))
+        outputs[fmt] = str(out_path)
+
+    if outputs:
+        for fmt, path in outputs.items():
+            _print_status("INFO", f"WROTE format={fmt} path={path}", ns.progress or "dots")
+
+    # Spicy strict exit if high/critical exists
+    if ns.spicy_strict and cfg.spicy:
+        counts = getattr(cfg, "spicy_counts", {}) or {}
+        has_high = counts.get("high", 0) or counts.get("critical", 0)
+        if has_high:
+            _print_status("WARN", "SPICY_STRICT triggered (high/critical findings)", ns.progress or "dots")
+            return 2
+
     return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-
-

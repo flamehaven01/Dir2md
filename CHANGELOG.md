@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-12-02
+
+### Added
+- AI-friendly query & output:
+  - `--query` filters/sorts files by match score and injects snippets.
+  - `--output-format md|json|jsonl` for LLM/CLI pipelines.
+- Simplified presets with new flags:
+  - `--ai-mode` (ref mode, capped budgets, stats/manifest on).
+  - `--fast` (tree + manifest only; contents skipped).
+- Spicy risk report:
+  - `--spicy` adds severity counts/score/findings to md/json/jsonl/manifest.
+  - `--spicy-strict` exits non-zero when high/critical findings are present.
+- CLI polish: `[INFO]` status, `--progress` verbosity selector, plan summary line.
+- Safety/performance hardening: symlink escape guard, streaming file read with full hash, manifest reuse.
+- Packaging and release:
+  - Default output now md + jsonl for human + LLM use.
+  - Added GitHub Actions Release workflow (PyPI/TestPyPI publish).
+  - Docker usage documented; existing Dockerfile installs package.
+- Architecture decoupling: introduced `walker.py`, `selector.py`, `renderer.py`, and `orchestrator.py` to reduce the `core.py` god-object risk.
+- Tests expanded beyond the monolith: added module coverage for masking, search, token, spicy, and CLI defaults.
+
+### Changed
+- Default preset remains `pro`; `iceberg` references removed from docs.
+
+### Fixed
+- `fast` mode now skips file content reads.
+- Plan summary reflects post-preset effective settings.
+- Fixed `--include-glob`/`--exclude-glob` NameError when compiling pathspecs.
+
+### Tests
+- Expanded pytest coverage for symlinks, streaming hashes, query filtering/snippets, JSONL output, masking, spicy, search, and token logic (22 passed, 2 skipped).
+
 ## [1.0.4] - 2025-10-09
 
 ### Added
@@ -78,102 +110,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Custom masking patterns load correctly from text files
 - Windows `file://` URI paths resolve properly (`file:///C:/...`)
 - Basic vs advanced masking mode separation enforced
-- `.env` auto-discovery works across different directory structures
-- ASCII-safe documentation renders correctly on Windows cp949 systems
-
-## [1.0.3] - 2025-10-06
-
-### Changed
-- Promote the CLI configuration defaults and optional flag handling refinements for general availability.
-- Add repository-level import helpers so local runs and pytest sessions automatically discover the `src` layout without editable installs.
-
-### Fixed
-- Restore gitwildmatch semantics for recursive globs by preventing `**/` patterns from matching root-level files.
-
-### Notes
-- Approved performance-focused guidance for faster pro preset runs (targeted excludes, tighter budgets, and optional manifest skips).
-
-## [1.0.2] - 2025-10-06
-
-### Added
-- **Pyproject-driven defaults**: CLI now reads `[tool.dir2md]` configuration to seed argument defaults before parsing.
-- **Legacy TOML support**: Bundled `tomli` for Python 3.10 and earlier so configuration loading works across environments.
-
-### Changed
-- **Optional flag handling**: CLI leaves optional switches unset unless provided, preserving config defaults and canonical output filenames.
-### Fixed
-- **CLI Option Functionality**
-  - Fixed `--include-glob` having no effect during report generation
-  - Fixed `--follow-symlinks` flag being ignored in directory walker
-  - Added proper file filtering based on include patterns while preserving directory tree structure
-  - Enhanced symlink detection to respect follow_symlinks setting for both directories and files
-- **Masking Mode Selection Logic**
-  - Fixed issue where Pro license users received advanced masking patterns even when using `mode="basic"`
-  - Updated `get_active_masking_rules()` to respect both mode parameter and license availability
-  - Now `mode="basic"` consistently uses only basic patterns regardless of license tier
-  - Ensures users can choose their preferred masking level independent of license capabilities
-- **Enhanced Private Key Security**
-  - Upgraded `PRIVATE_KEY` regex to mask entire PEM blocks instead of just headers
-  - Added `re.DOTALL` flag support for complete multiline private key content masking
-  - Now fully masks private key body and footer, eliminating sensitive data leakage
-  - Supports all PEM formats: `PRIVATE KEY`, `RSA PRIVATE KEY`, `EC PRIVATE KEY`
-
-### Testing
-- Enhanced `test_masking` with comprehensive private key validation
-- Verifies complete masking of header, body, and footer content
-- Tests multiple private key formats for thorough security coverage
-- All 4 test suites continue to pass with enhanced security
-
-## [1.0.1] - 2025-09-17
-
-### Fixed
-- **Missing masking.py File**
-  - Restored missing `src/dir2md/masking.py` file that was excluded by `.gitignore`
-  - Resolved critical ImportError preventing core masking functionality from working
-  - Removed `masking.py` entry from `.gitignore` to allow proper git tracking
-- **Incomplete Private Key Masking**
-  - Enhanced `PRIVATE_KEY` regex to match entire PEM blocks instead of just headers
-  - Added `re.DOTALL` flag support for multiline private key content masking
-  - Now completely masks private key body and footer, preventing sensitive data leakage
-  - Supports all PEM formats: `PRIVATE KEY`, `RSA PRIVATE KEY`, `EC PRIVATE KEY`
-- **Critical Import Issue** in masking module accessibility
-  - Fixed `ImportError` when importing `apply_masking` from package root level
-  - Added missing exports in `__init__.py` for core functions (`apply_masking`, `Config`, `generate_markdown_report`)
-  - Previously masking.py existed but wasn't accessible via `from dir2md import apply_masking`
-- **Markdown Code Block Formatting**
-  - Fixed incorrect fence pairing where directory tree and file content blocks used `````(4 backticks) to close instead of ```` (3 backticks)
-  - Ensures proper Markdown rendering in generated reports
-- **CLI Exclude Pattern Logic**
-  - Fixed issue where custom `--exclude-glob` patterns completely replaced default exclusions
-  - Now custom patterns are added to defaults (`.git`, `__pycache__`, `node_modules`, etc.) instead of overriding them
-- **Stats Flag Control**
-  - Fixed `--stats` flag that was always evaluating to `True` due to `bool(ns.stats or True)` logic
-  - Now `--stats` flag properly controls whether Summary section is included in output
-
-### Improved
-- Enhanced package-level API accessibility for library usage
-- Better default behavior preservation when using custom CLI options
-- Improved Markdown output formatting consistency
-
-### Testing
-- All 4 test cases continue to pass: `test_budget_and_modes`, `test_ref_mode_manifest`, `test_inline_sampling`, `test_masking`
-- Verified masking functionality works correctly (e.g., `Bearer token` -> `[*** MASKED_SECRET ***]`)
-- CLI functionality preserved across all modes and options
-
-### Technical Details
-- Package now properly exports core functions in `__init__.py`
-- Masking module with AWS key, Bearer token, and private key detection fully operational
-- License-based feature gating implemented for basic vs advanced masking
-- Markdown fence consistency ensures proper code syntax highlighting
-
-## [0.0.1] - Initial Release
-- Core directory scanning and Markdown generation
-- Token budget optimization with LLM modes (off, ref, summary, inline)
-- Basic masking capabilities for sensitive data
-- Gitignore integration and file filtering
-- Manifest generation and statistics reporting
-
-
-
-
-

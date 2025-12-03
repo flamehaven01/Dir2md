@@ -62,7 +62,7 @@ def apply_masking(text: str, mode: str = "basic", custom_patterns: Iterable[str]
     # Show upgrade message only once if trying to use advanced features without license
     if mode == "advanced" and not license_manager.check_feature('advanced_masking') and not _upgrade_message_shown:
         print("[INFO] Advanced masking requires dir2md Pro. Using basic masking rules.")
-        print("       Visit https://dir2md.com/pro for more comprehensive security patterns.")
+        print("       Visit https://flamehaven.space/ for more comprehensive security patterns.")
         _upgrade_message_shown = True
     
     for rule_name, pattern in rules.items():

@@ -1,18 +1,24 @@
+"""Core config and generation orchestrator helpers."""
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional
 import json
 
-from pathspec import PathSpec
+from .manifest import write_manifest
+from .spicy import evaluate_spicy
+from .walker import collect_files
+from .selector import build_candidates
+from .renderer import (
+    render_blocks,
+    build_manifest,
+    render_json,
+    render_jsonl,
+    render_markdown,
+    render_spicy_md,
+)
 
-from .gitignore import build_gitignore_matcher
-from .markdown import to_markdown
-from .simhash import simhash64, hamming
-from .summary import summarize
-from .manifest import sha256_bytes, write_manifest
-from .token import estimate_tokens
-from .masking import apply_masking
 
 @dataclass
 class Stats:
@@ -21,6 +27,7 @@ class Stats:
     total_omitted: int = 0
     total_with_contents: int = 0
     est_tokens_prompt: int = 0
+
 
 @dataclass
 class Config:
@@ -37,8 +44,7 @@ class Config:
     only_ext: Optional[set[str]] = None
     add_stats: bool = True
     add_toc: bool = False
-    # Preset/token related
-    llm_mode: str = "ref"   # off|ref|summary|inline
+    llm_mode: str = "ref"
     budget_tokens: int = 6000
     max_file_tokens: int = 1200
     dedup_bits: int = 16
@@ -46,113 +52,51 @@ class Config:
     sample_tail: int = 40
     strip_comments: bool = False
     emit_manifest: bool = True
-    preset: str = "iceberg"
+    preset: str = "pro"
     explain_capsule: bool = False
     no_timestamp: bool = False
     masking_mode: str = "basic"
     custom_mask_patterns: List[str] = field(default_factory=list)
-
-_DEFAULT_ONLY_EXT = {"py","ts","tsx","js","jsx","md","txt","toml","yaml","yml","json", ""}
-
-
-_GLOB_SPECIAL_CHARS = set("*?[")
-
-@dataclass(frozen=True)
-class _CompiledGlob:
-    spec: PathSpec
-    allows_root_files: bool
+    query: Optional[str] = None
+    output_format: str = "md"
+    spicy: bool = False
 
 
-def _pattern_allows_root_file(pattern: str) -> bool:
-    normalized = pattern.lstrip('/')
-    if not normalized:
-        return True
-    consumed_recursive = False
-    while normalized.startswith('**/'):
-        consumed_recursive = True
-        normalized = normalized[3:]
-    if not normalized:
-        return False
-    if '/' not in normalized:
-        if consumed_recursive and '*' in normalized:
-            return False
-        return True
-    return False
+_DEFAULT_ONLY_EXT = {"py", "ts", "tsx", "js", "jsx", "md", "txt", "toml", "yaml", "yml", "json", ""}
 
 
-def _expand_glob_patterns(patterns: List[str]) -> list[str]:
-    expanded: list[str] = []
-    seen: set[str] = set()
-    for raw in patterns:
-        if not raw:
-            continue
-        normalized = raw.replace('\\', '/')
-        if not normalized:
-            continue
-        candidates = [normalized]
-        if not any(ch in normalized for ch in _GLOB_SPECIAL_CHARS):
-            base = normalized.rstrip('/') or normalized
-            candidates.extend([
-                f"{base}/**",
-                f"**/{base}",
-                f"**/{base}/**",
-            ])
-        for candidate in candidates:
-            if candidate not in seen:
-                seen.add(candidate)
-                expanded.append(candidate)
-    return expanded
-
-
-def _compile_pathspec(patterns: List[str]) -> _CompiledGlob | None:
-    expanded = _expand_glob_patterns(patterns)
-    if not expanded:
-        return None
-    spec = PathSpec.from_lines('gitwildmatch', expanded)
-    allows_root = any(_pattern_allows_root_file(p) for p in expanded)
-    return _CompiledGlob(spec=spec, allows_root_files=allows_root)
-
-
-def _is_within_root(root: Path, candidate: Path) -> bool:
-    """Return True if candidate resolves inside root."""
-    try:
-        resolved_root = root if root.is_absolute() else root.resolve()
-    except (OSError, RuntimeError):
-        resolved_root = root
-    try:
-        resolved_candidate = candidate.resolve(strict=False)
-    except (OSError, RuntimeError):
-        return False
-    if hasattr(resolved_candidate, "is_relative_to"):
-        return resolved_candidate.is_relative_to(resolved_root)  # type: ignore[attr-defined]
-    try:
-        resolved_candidate.relative_to(resolved_root)
-        return True
-    except ValueError:
-        return False
+def _estimate_total_bytes(cfg: Config) -> int:
+    total_bytes = 0
+    max_cap = 10_000_000
+    for f in cfg.root.rglob('*'):
+        if f.is_file():
+            try:
+                total_bytes += f.stat().st_size
+            except OSError:
+                continue
+            if total_bytes >= max_cap:
+                break
+    return total_bytes
 
 
 def apply_preset(cfg: Config) -> Config:
     try:
-        total_bytes = sum((f.stat().st_size for f in cfg.root.rglob('*') if f.is_file()))
+        total_bytes = _estimate_total_bytes(cfg)
     except Exception:
         total_bytes = 0
-    if cfg.preset == "iceberg":
-        cfg.respect_gitignore = True
-        if not cfg.only_ext:
-            cfg.only_ext = set(_DEFAULT_ONLY_EXT)
+    if cfg.preset == "raw":
+        cfg.llm_mode = "inline"
+        cfg.dedup_bits = 0
+        cfg.only_ext = None
+        cfg.emit_manifest = False
+    elif cfg.preset == "pro":
+        cfg.llm_mode = cfg.llm_mode or "summary"
+    elif cfg.preset == "fast":
+        cfg.llm_mode = "off"
         cfg.dedup_bits = 16
         cfg.emit_manifest = True
-        # Auto-determine mode based on repository size
-        if total_bytes < 200_000:
-            cfg.llm_mode = "inline"; cfg.budget_tokens = min(cfg.budget_tokens, 6000); cfg.max_file_tokens = 1000
-        elif total_bytes < 5_000_000:
-            cfg.llm_mode = "summary"; cfg.budget_tokens = min(cfg.budget_tokens, 6000)
-        else:
-            cfg.llm_mode = "ref"; cfg.budget_tokens = min(cfg.budget_tokens, 4000)
-    elif cfg.preset == "raw":
-        cfg.llm_mode = "inline"; cfg.dedup_bits = 0; cfg.only_ext = None; cfg.emit_manifest = False
-    # pro: maintain user settings
+        cfg.include_contents = False
+        cfg.output_format = "md"
     return cfg
 
 
@@ -163,203 +107,73 @@ def generate_markdown_report(cfg: Config) -> str:
         raise FileNotFoundError(f"Path does not exist: {root}")
     if not root.is_dir():
         raise NotADirectoryError(f"Path is not a directory: {root}")
-    try:
-        resolved_root = root.resolve()
-    except (OSError, RuntimeError):
-        resolved_root = root
 
-    gitignore = build_gitignore_matcher(root) if cfg.respect_gitignore else None
+    stats = Stats()
+    files, tree_lines, is_included, is_omitted = collect_files(
+        root,
+        cfg.include_globs,
+        cfg.exclude_globs,
+        cfg.omit_globs,
+        cfg.respect_gitignore,
+        cfg.follow_symlinks,
+        stats,
+    )
 
-    include_spec = _compile_pathspec(cfg.include_globs)
-    exclude_spec = _compile_pathspec(cfg.exclude_globs)
-    omit_spec = _compile_pathspec(cfg.omit_globs)
+    candidates, candidate_hash = build_candidates(cfg, files, root, is_included, is_omitted)
+    selected_blocks, json_entries, est_total = render_blocks(cfg, root, candidates)
 
-    def _spec_matches(spec: _CompiledGlob | None, path: Path) -> bool:
-        if spec is None:
-            return False
-        try:
-            # Normalize to a POSIX-style relative path for pathspec matching.
-            relative_path = str(path.relative_to(root)).replace('\\', '/')
-        except ValueError:
-            return False
-        matched = spec.spec.match_file(relative_path)
-        if not matched:
-            return False
-        if '/' not in relative_path and not spec.allows_root_files:
-            return False
-        return True
-
-    def is_ignored(p: Path) -> bool:
-        if gitignore and gitignore(str(p.relative_to(root) if p != root else '')):
-            return True
-        return _spec_matches(exclude_spec, p)
-
-    def is_omitted(p: Path) -> bool:
-        return _spec_matches(omit_spec, p)
-
-    def is_included(p: Path) -> bool:
-        if include_spec is None:
-            return True
-        return _spec_matches(include_spec, p)
-
-    # Tree & file collection
-    tree_lines: list[str] = [str(root)]
-    files: list[Path] = []
-    stats = Stats()  # Pre-create for accurate directory counting
-
-    def walk(current: Path, prefix: str = "") -> None:
-        # Count when entering directory
-        stats.total_dirs += 1
-        try:
-            entries = sorted(list(current.iterdir()), key=lambda x: (not x.is_dir(), x.name.lower()))
-        except PermissionError:
-            return
-        entries = [e for e in entries if not is_ignored(e)]
-        for i, child in enumerate(entries):
-            last = (i == len(entries)-1)
-            joint = "└── " if last else "├── "
-            tree_lines.append(f"{prefix}{joint}{child.name}")
-            if child.is_dir():
-                # Check if it's a symlink and respect follow_symlinks setting
-                if child.is_symlink() and not cfg.follow_symlinks:
-                    continue  # Skip symlinked directories when follow_symlinks=False
-                walk(child, prefix + ("    " if last else "│   "))
-            else:
-                # For files, add to list (but check symlinks during processing)
-                files.append(child)
-
-    walk(root)
-
-    # Generate candidates + deduplication
-    candidates: list[dict] = []
-    sim_seen: list[int] = []
-    for f in files:
-        if cfg.only_ext and f.suffix.lstrip(".").lower() not in cfg.only_ext:
-            continue
-        if is_omitted(f):
-            continue
-        if not is_included(f):
-            continue
-        # Skip symlinked files when follow_symlinks=False
-        if f.is_symlink() and not cfg.follow_symlinks:
-            continue
-        try:
-            raw_full = f.read_bytes()
-        except Exception:
-            continue
-        # Preserve full file hash before truncation
-        full_file_hash = sha256_bytes(raw_full)
-
-        # Apply max_bytes truncation for processing
-        raw = raw_full
-        if cfg.max_bytes and len(raw) > cfg.max_bytes:
-            raw = raw[: cfg.max_bytes]
-        text = raw.decode("utf-8", errors="replace")
-        if cfg.masking_mode != "off" or cfg.custom_mask_patterns:
-            text = apply_masking(text, mode=cfg.masking_mode, custom_patterns=cfg.custom_mask_patterns)
-        sh = simhash64(text)
-        # Deduplication
-        if cfg.dedup_bits > 0 and any(hamming(sh, h0) <= cfg.dedup_bits for h0 in sim_seen):
-            continue
-        sim_seen.append(sh)
-        candidates.append({
-            "path": f,
-            "sha256": full_file_hash,
-            "summary": summarize(f, text, max_lines=40),
-            "text": text,
-            "simhash": sh,
-        })
-
-    # Apply budget + reflect mode (Explain & Drift)
-    est_total = 0
-    selected_blocks: list[tuple[Path, str, str]] = []
-    selected_hashes: list[int] = []
-    def drift_score_bits(sh: int) -> int:
-        if not selected_hashes:
-            return 64
-        return min((hamming(sh, prev) for prev in selected_hashes), default=64)
-
-    for rec in candidates:
-        if cfg.llm_mode == "off":
-            break
-        sh = rec["simhash"]
-        drift_bits = drift_score_bits(sh)
-        drift = round(drift_bits / 64, 3)  # 0~1, higher = fresher
-        if cfg.llm_mode == "ref":
-            meta = json.dumps({"sha256": rec["sha256"], "path": str(rec["path"]), "drift": drift}, ensure_ascii=False)
-            tok = estimate_tokens(meta) + 16
-            if est_total + tok > cfg.budget_tokens:
-                continue
-            est_total += tok
-            selected_blocks.append((rec["path"], "json", meta))
-            selected_hashes.append(sh)
-        elif cfg.llm_mode == "summary":
-            payload = rec["summary"]
-            tok = estimate_tokens(payload)
-            if est_total + tok > cfg.budget_tokens:
-                continue
-            est_total += tok
-            text = payload
-            if cfg.explain_capsule:
-                text += f"\n\n<!-- why: summary; drift={drift} -->"
-            selected_blocks.append((rec["path"], "markdown", text))
-            selected_hashes.append(sh)
-        else:  # inline
-            lines = rec["text"].splitlines()
-            if cfg.max_lines and len(lines) > cfg.max_lines:
-                lines = lines[: cfg.max_lines]
-            content = "\n".join(lines)
-            if estimate_tokens(content) > cfg.max_file_tokens:
-                head = lines[: cfg.sample_head]
-                tail = lines[-cfg.sample_tail:] if cfg.sample_tail > 0 else []
-                mid = f"\n<!-- [truncated middle: {max(0, len(lines)-len(head)-len(tail))} lines omitted] -->\n"
-                content = "\n".join(head + [mid] + tail)
-            tok = min(cfg.max_file_tokens, estimate_tokens(content))
-            if est_total + tok > cfg.budget_tokens:
-                continue
-            est_total += tok
-            if cfg.explain_capsule:
-                content += f"\n\n<!-- why: inline; drift={drift}; tok={tok} -->"
-            lang = rec["path"].suffix.lstrip(".") or "text"
-            selected_blocks.append((rec["path"], lang, content))
-            selected_hashes.append(sh)
-
-    # Final reflection of accumulated statistics
     stats.total_files_in_tree = len(files)
     stats.total_omitted = max(0, len(files) - len(selected_blocks))
     stats.total_with_contents = len(selected_blocks)
     stats.est_tokens_prompt = est_total
-    # Note: stats.total_dirs accumulated during walk()
 
-    # Manifest
-    if cfg.emit_manifest:
-        file_manifest = []
-        for (p, lang, t) in selected_blocks:
-            entry = {"path": str(p.relative_to(root)), "mode": cfg.llm_mode}
-            try:
-                # Re-read file for sha256 to ensure it's always present
-                entry["sha256"] = sha256_bytes(p.read_bytes())
-            except Exception:
-                entry["sha256"] = None
-            
-            if lang == "json":
-                try:
-                    meta = json.loads(t)
-                    entry.update(meta) # drift, etc.
-                except Exception:
-                    pass
-            file_manifest.append(entry)
-        
-        full_manifest = {
-            "stats": {
-                "total_dirs": stats.total_dirs,
-                "total_files_in_tree": stats.total_files_in_tree,
-                "total_omitted": stats.total_omitted,
-                "total_with_contents": stats.total_with_contents,
-                "est_tokens_prompt": stats.est_tokens_prompt,
-            },
-            "files": file_manifest
+    spicy_score = 0
+    spicy_counts = {}
+    spicy_findings = []
+    spicy_bundle = None
+    if cfg.spicy:
+        spicy_score, spicy_counts, spicy_findings = evaluate_spicy(cfg, stats, candidates, selected_blocks)
+        spicy_rows = [f.__dict__ if hasattr(f, "__dict__") else f for f in spicy_findings]
+        spicy_bundle = {
+            "score": spicy_score,
+            "counts": spicy_counts,
+            "findings": spicy_rows,
         }
+        cfg.spicy_score = spicy_score  # type: ignore[attr-defined]
+        cfg.spicy_counts = spicy_counts  # type: ignore[attr-defined]
+
+    if cfg.emit_manifest:
+        full_manifest = build_manifest(cfg, stats, selected_blocks, root, candidate_hash, spicy_bundle)
         write_manifest(full_manifest, cfg.output.with_suffix('.manifest.json'))
 
-    return to_markdown(cfg, tree_lines, selected_blocks, stats)
+    if cfg.output_format == "json":
+        return json.dumps(
+            {
+                "root": str(cfg.root),
+                "preset": cfg.preset,
+                "llm_mode": cfg.llm_mode,
+                "stats": {
+                    "total_dirs": stats.total_dirs,
+                    "total_files_in_tree": stats.total_files_in_tree,
+                    "total_omitted": stats.total_omitted,
+                    "total_with_contents": stats.total_with_contents,
+                    "est_tokens_prompt": stats.est_tokens_prompt,
+                },
+                "files": json_entries,
+                "spicy": spicy_bundle,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+
+    if cfg.output_format == "jsonl":
+        lines = [json.dumps(entry, ensure_ascii=False) for entry in json_entries]
+        if spicy_bundle:
+            lines.append(json.dumps({"spicy": spicy_bundle}, ensure_ascii=False))
+        return "\n".join(lines)
+
+    md_output = render_markdown(cfg, tree_lines, selected_blocks, stats)
+    if cfg.spicy and spicy_bundle:
+        md_output = render_spicy_md(md_output, spicy_counts, spicy_score, spicy_bundle["findings"])
+
+    return md_output

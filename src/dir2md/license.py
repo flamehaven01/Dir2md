@@ -51,7 +51,7 @@ class LicenseManager:
         if not self.check_feature(feature):
             raise LicenseError(
                 f"Feature '{feature}' requires dir2md Pro license. "
-                f"Visit https://dir2md.com/pro for more information."
+                f"Visit https://flamehaven.space/ for more information."
             )
 
 class LicenseError(Exception):

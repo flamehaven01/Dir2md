@@ -1,5 +1,5 @@
 from __future__ import annotations
-import json, tempfile
+import hashlib, json, tempfile
 from pathlib import Path
 from dir2md.core import Config, generate_markdown_report
 from dir2md.cli import _resolve_custom_mask_patterns
@@ -509,4 +509,192 @@ def test_nested_glob_patterns(tmp_path: Path):
     omit_tests = run_config(omit=["tests/**"], suffix="omit_tests")
     assert "tests/unit/test_helper.py" not in omit_tests
     assert "src/utils/helper.py" in omit_tests
+
+
+def test_symlink_outside_root_skipped(tmp_path: Path):
+    """Symlinks that escape the root should not be followed even when follow_symlinks=True."""
+    root = tmp_path / "root"
+    root.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    target = outside / "secret.txt"
+    target.write_text("outside-secret", encoding="utf-8")
+    link = root / "link_to_outside.txt"
+    try:
+        link.symlink_to(target)
+    except (OSError, NotImplementedError):
+        import pytest
+        pytest.skip("Symlinks not supported on this system")
+
+    cfg = Config(
+        root=root,
+        output=root / "OUT.md",
+        include_globs=[],
+        exclude_globs=[],
+        omit_globs=[],
+        respect_gitignore=False,
+        follow_symlinks=True,
+        max_bytes=200_000,
+        max_lines=2000,
+        include_contents=True,
+        only_ext=None,
+        add_stats=True,
+        add_toc=False,
+        llm_mode="inline",
+        budget_tokens=1000,
+        max_file_tokens=1000,
+        dedup_bits=0,
+        sample_head=120,
+        sample_tail=40,
+        strip_comments=False,
+        emit_manifest=True,
+        preset="pro",
+        explain_capsule=False,
+        masking_mode="off",
+        no_timestamp=True,
+        custom_mask_patterns=[],
+    )
+
+    md = generate_markdown_report(cfg)
+    manifest = json.loads((root / "OUT.manifest.json").read_text(encoding="utf-8"))
+    paths = {entry["path"] for entry in manifest["files"]}
+    assert "link_to_outside.txt" not in paths
+    assert "outside-secret" not in md
+
+
+def test_streaming_respects_max_bytes_and_full_hash(tmp_path: Path):
+    """Large files should use full-hash with truncated content to respect max_bytes."""
+    root = tmp_path / "root"
+    root.mkdir()
+    content = "start-" + ("X" * 10000) + "-end"
+    target = root / "huge.txt"
+    target.write_text(content, encoding="utf-8")
+    expected_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+    cfg = Config(
+        root=root,
+        output=root / "OUT.md",
+        include_globs=[],
+        exclude_globs=[],
+        omit_globs=[],
+        respect_gitignore=False,
+        follow_symlinks=False,
+        max_bytes=100,
+        max_lines=2000,
+        include_contents=True,
+        only_ext=None,
+        add_stats=True,
+        add_toc=False,
+        llm_mode="inline",
+        budget_tokens=1000,
+        max_file_tokens=200,
+        dedup_bits=0,
+        sample_head=120,
+        sample_tail=40,
+        strip_comments=False,
+        emit_manifest=True,
+        preset="pro",
+        explain_capsule=False,
+        masking_mode="off",
+        no_timestamp=True,
+        custom_mask_patterns=[],
+    )
+
+    md = generate_markdown_report(cfg)
+    manifest = json.loads((root / "OUT.manifest.json").read_text(encoding="utf-8"))
+    entry = next(e for e in manifest["files"] if e["path"] == "huge.txt")
+    assert entry["sha256"] == expected_hash
+    assert "start-" in md
+    assert "-end" not in md
+
+
+def test_query_filters_matches_and_snippet(tmp_path: Path):
+    """Query should prioritize matching files and include snippets in output."""
+    root = tmp_path
+    (root / "match.txt").write_text("alpha beta query gamma delta", encoding="utf-8")
+    (root / "other.txt").write_text("unrelated content", encoding="utf-8")
+
+    cfg = Config(
+        root=root,
+        output=root / "OUT.md",
+        include_globs=[],
+        exclude_globs=[],
+        omit_globs=[],
+        respect_gitignore=False,
+        follow_symlinks=False,
+        max_bytes=200_000,
+        max_lines=2000,
+        include_contents=True,
+        only_ext=None,
+        add_stats=True,
+        add_toc=False,
+        llm_mode="inline",
+        budget_tokens=1000,
+        max_file_tokens=400,
+        dedup_bits=0,
+        sample_head=120,
+        sample_tail=40,
+        strip_comments=False,
+        emit_manifest=True,
+        preset="pro",
+        explain_capsule=False,
+        masking_mode="off",
+        no_timestamp=True,
+        custom_mask_patterns=[],
+        query="beta query",
+    )
+
+    md = generate_markdown_report(cfg)
+    manifest = json.loads((root / "OUT.manifest.json").read_text(encoding="utf-8"))
+    paths = {entry["path"] for entry in manifest["files"]}
+    assert paths == {"match.txt"}
+    assert "<!-- query:" in md
+    assert "alpha beta query gamma delta" in md
+
+
+def test_output_format_jsonl(tmp_path: Path):
+    """JSONL output should emit one entry per selected file with query metadata."""
+    root = tmp_path
+    (root / "note.md").write_text("This is a note about rockets.", encoding="utf-8")
+
+    cfg = Config(
+        root=root,
+        output=root / "OUT.jsonl",
+        include_globs=[],
+        exclude_globs=[],
+        omit_globs=[],
+        respect_gitignore=False,
+        follow_symlinks=False,
+        max_bytes=200_000,
+        max_lines=2000,
+        include_contents=True,
+        only_ext=None,
+        add_stats=True,
+        add_toc=False,
+        llm_mode="summary",
+        budget_tokens=1000,
+        max_file_tokens=400,
+        dedup_bits=0,
+        sample_head=120,
+        sample_tail=40,
+        strip_comments=False,
+        emit_manifest=True,
+        preset="pro",
+        explain_capsule=False,
+        masking_mode="off",
+        no_timestamp=True,
+        custom_mask_patterns=[],
+        query="rockets",
+        output_format="jsonl",
+    )
+
+    out = generate_markdown_report(cfg)
+    lines = [json.loads(line) for line in out.splitlines() if line.strip()]
+    assert len(lines) == 1
+    entry = lines[0]
+    assert entry["path"] == "note.md"
+    assert entry["mode"] == "summary"
+    assert entry["lang"] == "markdown"
+    assert entry["match_score"] >= 1
+    assert "rockets" in entry["content"]
 

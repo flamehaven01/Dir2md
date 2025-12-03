@@ -119,7 +119,7 @@ dir2md . --emit-manifest --no-timestamp --output blueprint.md
 ### Pro Evaluation
 
 ```bash
-export DIR2MD_LICENSE="TRIAL-request-at-dir2md.com"
+export DIR2MD_LICENSE="TRIAL-request-at-flamehaven.space"
 pip install dir2md-pro
 dir2md . --masking advanced --parallel --export html
 ```
@@ -223,15 +223,15 @@ dir2md --help
 
 ### Evaluate Pro Features
 ```bash
-export DIR2MD_LICENSE="TRIAL-request-at-dir2md.com"
+export DIR2MD_LICENSE="TRIAL-request-at-flamehaven.space"
 pip install dir2md-pro
 dir2md --masking advanced --parallel
 ```
 
 ### Purchase Pro License
-- Individual: https://dir2md.com/buy/individual
-- Team: https://dir2md.com/buy/team
-- Enterprise: https://dir2md.com/contact
+- Individual: https://flamehaven.space/
+- Team: https://flamehaven.space/
+- Enterprise: https://flamehaven.space/contact
 
 ---
 
