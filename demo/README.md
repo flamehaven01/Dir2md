@@ -1,6 +1,6 @@
 ﻿---
 title: dir2md + Spicy - Repository to Markdown Converter
-emoji: ""
+emoji: 📂
 colorFrom: blue
 colorTo: green
 sdk: gradio
