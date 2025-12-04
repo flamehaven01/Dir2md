@@ -1,6 +1,6 @@
-from __future__ import annotations
 from typing import Iterable
-import re, hashlib
+import re
+import hashlib
 
 _TOKEN_RE = re.compile(r"[A-Za-z0-9_]+")
 

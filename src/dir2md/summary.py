@@ -1,4 +1,3 @@
-from __future__ import annotations
 from pathlib import Path
 import ast
 
@@ -8,17 +7,20 @@ def summarize(path: Path, content: str, max_lines: int = 60) -> str:
         try:
             tree = ast.parse(content)
             funcs = [n.name for n in tree.body if isinstance(n, ast.FunctionDef)]
-            clss  = [n.name for n in tree.body if isinstance(n, ast.ClassDef)]
-            imps  = []
+            clss = [n.name for n in tree.body if isinstance(n, ast.ClassDef)]
+            imps: list[str] = []
             for n in tree.body:
                 if isinstance(n, ast.Import):
                     imps.extend([a.name for a in n.names])
                 if isinstance(n, ast.ImportFrom):
                     imps.extend([a.name for a in n.names])
-            lines = []
-            if imps:  lines.append(f"- imports: {', '.join(imps)[:200]}")
-            if clss:  lines.append(f"- classes: {', '.join(clss)[:200]}")
-            if funcs: lines.append(f"- functions: {', '.join(funcs)[:200]}")
+            lines: list[str] = []
+            if imps:
+                lines.append(f"- imports: {', '.join(imps)[:200]}")
+            if clss:
+                lines.append(f"- classes: {', '.join(clss)[:200]}")
+            if funcs:
+                lines.append(f"- functions: {', '.join(funcs)[:200]}")
             return "\n".join(lines) or "- (no symbols)"
         except Exception:
             pass

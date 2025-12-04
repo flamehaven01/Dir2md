@@ -4,7 +4,6 @@ import tempfile
 import shutil
 from pathlib import Path
 import os
-import json
 import sys
 
 # Ensure local dir2md package is importable in the HF Space

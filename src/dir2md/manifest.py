@@ -1,4 +1,3 @@
-from __future__ import annotations
 """Manifest helpers for dir2md."""
 from pathlib import Path
 import json

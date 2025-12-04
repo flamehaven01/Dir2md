@@ -1,5 +1,5 @@
 """Parallel processing module (Pro feature)"""
-from .license import license_manager, LicenseError
+from .license import license_manager
 
 def parallel_file_processing(files, processor_func):
     """Process files in parallel (Pro feature)"""

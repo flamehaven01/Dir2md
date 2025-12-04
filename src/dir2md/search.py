@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Lightweight query matching utilities for dir2md."""
 
 import textwrap

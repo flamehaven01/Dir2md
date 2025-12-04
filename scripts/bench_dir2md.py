@@ -1,5 +1,7 @@
 from __future__ import annotations
-import time, json, argparse
+import time
+import json
+import argparse
 from pathlib import Path
 from dir2md.core import Config, generate_markdown_report
 

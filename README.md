@@ -1,6 +1,6 @@
----
+﻿---
 title: dir2md + Spicy - Repository to Markdown Converter
-emoji: 📂
+emoji: ?뱛
 colorFrom: blue
 colorTo: green
 sdk: gradio
@@ -18,7 +18,7 @@ tags:
   - python
 ---
 
-﻿# Dir2md +spicy
+癤? Dir2md +spicy
 
 ![Dir2md Logo](./dir2md-logo.png)
 
@@ -191,7 +191,7 @@ pattern_files = ["file://./.dir2md/patterns.txt"]
 |--------|--------------|----------|-------|----------|
 | `raw` | Unlimited | inline | Off | Development, full code review |
 | `pro` | User-defined | User-defined | Custom | Production use, CI/CD, tuned budgets |
-| `ai` | ≤4000 (cap) | ref | 16-bit | LLM context prep with query prioritization |
+| `ai` | ??000 (cap) | ref | 16-bit | LLM context prep with query prioritization |
 | `fast` | n/a | off | 16-bit | Tree + manifest only (no contents), ultra-lightweight |
 
 ## Limitations (Current OSS Build)
@@ -335,7 +335,7 @@ dir2md . --preset raw --masking basic --budget-tokens 4000
 - Enable spicy findings: `--spicy`
 - Enforce failure on high/critical: `--spicy --spicy-strict` (exit code 2)
 - Outputs:
-  - `md` (human-friendly): includes “Spicy” section
+  - `md` (human-friendly): includes ?쏶picy??section
   - `json`/`jsonl`/manifest (LLM-friendly): `spicy.score`, `spicy.counts`, `spicy.findings[]`
 Severity levels: ok, warn, risk, high, critical.
 
@@ -374,8 +374,8 @@ For additional support:
 
 ## SIDRCE Certification
 
-- **Certification ID**: SIDRCE-DIR2MD-20251203-Ω-ARCHON  
-- **Scores**: Integrity 98, Resonance 95, Stability 95, Ω-Score 96 (Certified)  
+- **Certification ID**: SIDRCE-DIR2MD-20251203-廓-ARCHON  
+- **Scores**: Integrity 98, Resonance 95, Stability 95, 廓-Score 96 (Certified)  
 - The spicy refactor distributed responsibilities across `walker`, `selector`, `renderer`, and `orchestrator`, eliminating the former god-object risk.  
 - pytest defaults are captured in `pytest.ini` (cache_dir, pythonpath) to keep runs deterministic across environments.
 - Join discussions in [GitHub Discussions](https://github.com/Flamehaven/dir2md/discussions)
@@ -393,3 +393,4 @@ Pro features are available under a separate commercial license.
 ---
 
 Made with care by Flamehaven for developers who want their AI to understand their code.
+

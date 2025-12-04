@@ -13,8 +13,6 @@ from .selector import build_candidates
 from .renderer import (
     render_blocks,
     build_manifest,
-    render_json,
-    render_jsonl,
     render_markdown,
     render_spicy_md,
 )
@@ -81,9 +79,9 @@ def _estimate_total_bytes(cfg: Config) -> int:
 
 def apply_preset(cfg: Config) -> Config:
     try:
-        total_bytes = _estimate_total_bytes(cfg)
+        _estimate_total_bytes(cfg)
     except Exception:
-        total_bytes = 0
+        pass
     if cfg.preset == "raw":
         cfg.llm_mode = "inline"
         cfg.dedup_bits = 0

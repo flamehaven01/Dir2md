@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Command-line interface for dir2md."""
 
 import argparse
@@ -18,7 +16,7 @@ except ModuleNotFoundError:
     except ModuleNotFoundError:
         _toml_loader = None
 
-from .core import Config, generate_markdown_report
+from .core import Config
 from .orchestrator import run_pipeline
 from . import __version__
 
@@ -307,8 +305,6 @@ def main(argv: list[str] | None = None) -> int:
         output = Path(ns.output)
     else:
         suffix = ".md"
-        timestamp = Path.cwd().anchor  # placeholder, replaced below
-        # generate timestamp string
         import datetime
         ts = datetime.datetime.now().strftime("%Y%m%d")
         stem = root.name if root.is_dir() else "PROJECT"

@@ -1,4 +1,3 @@
-from __future__ import annotations
 """Helpers for collecting gitignore rules."""
 from pathlib import Path
 from typing import List, Optional, Callable
