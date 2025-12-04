@@ -53,9 +53,48 @@ dir2md . --masking basic --query "authentication"
 - **Smart Sampling** — Head/tail content sampling with configurable token budgets
 - **Security Masking** — Automatic detection of API keys, tokens, credentials, PEM blocks
 - **AI Optimization** — Query-based ranking, JSONL output, LLM-friendly formatting
-- **Risk Analysis** — Built-in security scanning with 5-level severity findings
+- **Risk Analysis (Spicy)** — Built-in security scanning with 5-level severity findings
 - **Flexible Output** — Markdown, JSON, JSONL, and manifest formats
 - **Custom Patterns** — Extensible masking via CLI, files, or `pyproject.toml`
+
+### What is Spicy? 🌶️
+
+**Spicy** is Dir2md's built-in security risk analyzer that automatically scans your configuration and codebase for potential issues.
+
+**Enabled by default** — every blueprint includes a Spicy risk report with:
+- **5 severity levels**: ⚪️ ok, 🌶 warn, 🌶🌶 risk, 🌶🌶🌶🌶 high, 🌶🌶🌶🌶🌶 critical
+- **Risk score** (0-100) and finding counts
+- **Actionable suggestions** for each issue
+
+**Common findings:**
+- Masking disabled when secrets might be present
+- Symlink traversal outside repository
+- Missing provenance tracking (no manifest)
+- Query provided but no files matched
+
+**Control Spicy behavior:**
+```bash
+# Default: Spicy enabled
+dir2md .
+
+# Disable Spicy
+dir2md . --no-spicy
+
+# Strict mode: fail build on high/critical findings (CI/CD)
+dir2md . --spicy-strict  # exits with code 2 if risks found
+```
+
+**Example Spicy output:**
+```
+## Spicy Review
+- Spicy Level: 🌶🌶  score=20/100
+- Counts: {'ok': 0, 'warn': 1, 'risk': 0, 'high': 1, 'critical': 0}
+
+| File | Line | Severity | Category | Message | Suggestion |
+|------|------|----------|----------|---------|------------|
+| - | 0 | high | security | masking is off in non-raw preset | use --masking basic |
+| - | 0 | warn | tracking | manifest disabled | enable --emit-manifest |
+```
 
 ## Configuration
 
