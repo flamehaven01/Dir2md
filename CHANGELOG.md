@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2025-12-04
+
+### Removed
+- Pro/license gating entirely: deleted `license.py`, removed license checks from masking/parallel/CLI/tests; `.env.example` no longer includes license keys.
+- Blueprint workflow retired; CI now runs ruff + pytest only.
+
+### Fixed
+- HF demo import path includes `src` so `dir2md` imports resolve in Spaces.
+- Lint/test cleanup after refactor (ruff + pytest green).
+
+### Documentation
+- Updated README/demo metadata (Spicy branding, HF front matter); pending: scrub remaining Pro/license mentions in docs.
+
 ## [1.1.0] - 2025-12-02
 
 ### Added
