@@ -1,6 +1,5 @@
 import re
 from typing import Iterable
-from .license import license_manager
 
 # Basic masking rules (available in OSS version)
 BASIC_MASKING_RULES = {
