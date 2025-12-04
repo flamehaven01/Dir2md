@@ -107,7 +107,7 @@ UmV1F2Cu5CX2jUcZdVRrVNjm/4Sk8DohVhQj4JY=
         preset="pro", explain_capsule=False, no_timestamp=True,
         masking_mode="basic",
     )
-    
+    md = generate_markdown_report(cfg)
     # Check AWS key masking
     assert secret_content not in md
     assert "[*** MASKED_SECRET ***]" in md
@@ -158,6 +158,7 @@ def test_custom_mask_patterns(tmp_path: Path):
         masking_mode="off",
         custom_mask_patterns=[r"custom-secret:\s+[^\s]+"],
     )
+    md = generate_markdown_report(cfg)
     assert custom_secret not in md
     assert "[*** MASKED_SECRET ***]" in md
     # Ensure turning off custom patterns reveals the secret again
@@ -208,6 +209,7 @@ def test_custom_mask_patterns_from_file(tmp_path: Path):
         masking_mode="off",
         custom_mask_patterns=patterns,
     )
+    md = generate_markdown_report(cfg)
     assert api_secret not in md
     assert "[*** MASKED_SECRET ***]" in md
 
@@ -293,8 +295,9 @@ def test_include_glob_filtering(tmp_path: Path):
         preset="raw", explain_capsule=False, no_timestamp=True,
         masking_mode="off",
     )
-    
+
     # Should include main.py content but not other files' content
+    md = generate_markdown_report(cfg)
     assert "main.py" in md  # File should appear in tree
     assert "print('hello')" in md  # Content should be included
 
@@ -396,7 +399,8 @@ def test_sha256_preservation_with_max_bytes(tmp_path: Path):
     )
 
     # Generate report and check that truncation occurred but SHA-256 is correct
-    
+    md = generate_markdown_report(cfg)
+
     # Verify content was truncated (should not contain the full repeated content)
     assert len(large_content) > 1000  # Original is larger than max_bytes
     
@@ -543,6 +547,7 @@ def test_symlink_outside_root_skipped(tmp_path: Path):
         no_timestamp=True,
         custom_mask_patterns=[],
     )
+    md = generate_markdown_report(cfg)
     manifest = json.loads((root / "OUT.manifest.json").read_text(encoding="utf-8"))
     paths = {entry["path"] for entry in manifest["files"]}
     assert "link_to_outside.txt" not in paths
@@ -586,6 +591,7 @@ def test_streaming_respects_max_bytes_and_full_hash(tmp_path: Path):
         no_timestamp=True,
         custom_mask_patterns=[],
     )
+    md = generate_markdown_report(cfg)
     manifest = json.loads((root / "OUT.manifest.json").read_text(encoding="utf-8"))
     entry = next(e for e in manifest["files"] if e["path"] == "huge.txt")
     assert entry["sha256"] == expected_hash
@@ -628,6 +634,7 @@ def test_query_filters_matches_and_snippet(tmp_path: Path):
         custom_mask_patterns=[],
         query="beta query",
     )
+    md = generate_markdown_report(cfg)
     manifest = json.loads((root / "OUT.manifest.json").read_text(encoding="utf-8"))
     paths = {entry["path"] for entry in manifest["files"]}
     assert paths == {"match.txt"}

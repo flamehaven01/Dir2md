@@ -13,7 +13,7 @@ BASIC_MASKING_RULES = {
     "OAUTH_CLIENT_SECRET": r"(?i)(client[_-]?secret)\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{8,64}['\"]?",
 }
 
-# Advanced masking rules (Pro version only)
+# Advanced masking rules (now also available in OSS)
 ADVANCED_MASKING_RULES = {
     "AWS_SECRET_ACCESS_KEY": r"(?i)aws_secret_access_key\s*=\s*['\"]?[A-Za-z0-9/+=]{40}['\"]?",
     "GENERIC_API_KEY": r"(?i)api[_-]?key\s*=\s*['\"]?[A-Za-z0-9_.-]{32,45}['\"]?",
@@ -30,22 +30,17 @@ PRO_MASK_REPLACEMENT = "[*** MASKED_SECRET_PRO ***]"
 CUSTOM_MASK_REPLACEMENT = "[*** MASKED_SECRET ***]"
 
 def get_active_masking_rules(mode: str = "basic"):
-    """Get masking rules based on mode and license level"""
+    """Get masking rules; advanced mode always allowed in OSS build."""
     rules = BASIC_MASKING_RULES.copy()
 
-    # Only add advanced rules if both mode and license allow it
-    if mode == "advanced" and license_manager.check_feature('advanced_masking'):
+    if mode == "advanced":
         rules.update(ADVANCED_MASKING_RULES)
 
     return rules
 
-# Global flag to show message only once per session
-_upgrade_message_shown = False
-
 def apply_masking(text: str, mode: str = "basic", custom_patterns: Iterable[str] | None = None) -> str:
-    """Applies masking rules to the given text based on license level and optional custom patterns."""
-    global _upgrade_message_shown
-    
+    """Apply masking rules with optional custom patterns (no license gating)."""
+
     if mode == "off":
         rules = {}
     else:
@@ -59,12 +54,6 @@ def apply_masking(text: str, mode: str = "basic", custom_patterns: Iterable[str]
             except re.error as exc:
                 print(f"[WARN] Skipping invalid custom mask pattern: {pattern!r} ({exc})")
 
-    # Show upgrade message only once if trying to use advanced features without license
-    if mode == "advanced" and not license_manager.check_feature('advanced_masking') and not _upgrade_message_shown:
-        print("[INFO] Advanced masking requires dir2md Pro. Using basic masking rules.")
-        print("       Visit https://flamehaven.space/ for more comprehensive security patterns.")
-        _upgrade_message_shown = True
-    
     for rule_name, pattern in rules.items():
         replacement = PRO_MASK_REPLACEMENT if rule_name in ADVANCED_MASKING_RULES else MASK_REPLACEMENT
         # Use DOTALL flag for private keys to match across newlines
