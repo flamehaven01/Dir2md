@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - HF demo import path includes `src` so `dir2md` imports resolve in Spaces.
 - Lint/test cleanup after refactor (ruff + pytest green).
+- Default excludes now drop cache/venv noise (`.pytest_cache_local`, `.ruff_cache`, `venv_clean`) for cleaner blueprints out of the box.
 
 ### Documentation
 - Updated README/demo metadata (Spicy branding, HF front matter); pending: scrub remaining Pro/license mentions in docs.
