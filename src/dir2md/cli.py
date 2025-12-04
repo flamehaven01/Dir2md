@@ -291,7 +291,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--mask-pattern-file", action="append", dest="mask_pattern_files", help="Load custom mask regex patterns from file (JSON array or newline separated list). Supports file:// URIs.")
     ap.add_argument("--output-format", choices=["md", "json", "jsonl", "both"], help="Output format: md (human), json/jsonl (LLM); default produces md+jsonl")
     ap.add_argument("--progress", choices=["full", "dots", "none"], help="Progress verbosity for CLI output (default: dots)")
-    ap.add_argument("--spicy", action="store_true", help="Enable spicy risk report (severity counts and findings)")
+    ap.add_argument("--spicy", dest="spicy", action="store_true", default=True, help="Enable spicy risk report (default: on)")
+    ap.add_argument("--no-spicy", dest="spicy", action="store_false", help="Disable spicy risk report")
     ap.add_argument("--spicy-strict", action="store_true", help="Exit non-zero if spicy finds high/critical findings")
 
     ap.add_argument("-V", "--version", action="version", version=f"dir2md {__version__}")

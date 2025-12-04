@@ -38,7 +38,7 @@ Dir2md analyzes directory structures and generates comprehensive markdown docume
 - **[*] Fast preset**: `--fast` builds tree + manifest only (no file reads) for ultra-light contexts.
 - **[o] AI-friendly defaults**: `--ai-mode` with capped budgets, stats, manifest on; `--query` ranks files and injects snippets.
 - **[+] Dual outputs by default**: Generates human `md` and LLM-friendly `jsonl` together unless you choose `--output-format`.
-- **[#] Spicy risk report**: `--spicy` adds 5-level findings to md/json/jsonl/manifest; `--spicy-strict` fails on high/critical.
+- **[#] Spicy risk report**: On by default (`--spicy`); disable with `--no-spicy`. Adds 5-level findings to md/json/jsonl/manifest; `--spicy-strict` fails on high/critical.
 - **[T] CLI polish**: `[LEVEL]` status lines, `--progress none|dots|full`, timestamped `*_blueprint[_spicy]_YYYYMMDD` filenames.
 - **[&] Architecture**: Introduced `walker.py`, `selector.py`, `renderer.py`, `orchestrator.py` to reduce `core.py` coupling.
 - **[W] Release**: Added PyPI/TestPyPI release workflow and Docker usage notes.
@@ -332,7 +332,7 @@ dir2md . --preset raw --masking basic --budget-tokens 4000
 ```
 
 ### Spicy risk report
-- Enable spicy findings: `--spicy`
+- Spicy on by default. Disable with `--no-spicy`
 - Enforce failure on high/critical: `--spicy --spicy-strict` (exit code 2)
 - Outputs:
   - `md` (human-friendly): includes ?쏶picy??section
