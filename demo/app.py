@@ -8,15 +8,32 @@ import json
 import sys
 
 # Ensure local dir2md package is importable in the HF Space
-ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "src"
-for path in (ROOT, SRC):
-    path_str = str(path)
-    if path_str not in sys.path:
-        sys.path.insert(0, path_str)
+# HF Structure: /app/app.py (so root is /app)
+# But if deployed from repo, 'src' might be at /app/src or relative to app.py
+# We'll try multiple strategies to find 'src'
+current_dir = Path(__file__).resolve().parent
+root_dir = current_dir.parent # Standard local structure
+src_dir = root_dir / "src"
 
-from dir2md.core import generate_markdown_report, Config
+# Add possible src paths
+possible_paths = [
+    str(src_dir), # local dev
+    str(current_dir / "src"), # if src is inside demo
+    str(Path("/app/src")), # HF root assumption 1
+    str(Path("/home/user/app/src")), # HF root assumption 2
+]
 
+for p in possible_paths:
+    if os.path.exists(p) and p not in sys.path:
+        sys.path.insert(0, p)
+
+try:
+    from dir2md.core import generate_markdown_report, Config
+except ImportError:
+    # Fallback: try installing in runtime if paths failed (not ideal for HF spaces but useful debug)
+    print("Failed to import dir2md from paths. Paths tried:", possible_paths)
+    # Let it fail or user requirements.txt handle it, but re-raise
+    raise
 
 def process_github_repo(
     repo_url: str,
@@ -119,4 +136,5 @@ demo = gr.Interface(
     ],
 )
 
-demo.launch()
+if __name__ == "__main__":
+    demo.launch()
