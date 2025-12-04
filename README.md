@@ -1,25 +1,4 @@
-﻿---
-title: dir2md + Spicy - Repository to Markdown Converter
-emoji: ?뱛
-colorFrom: blue
-colorTo: green
-sdk: gradio
-sdk_version: 5.45.0
-app_file: demo/app.py
-pinned: false
-license: mit
-short_description: LLM-ready markdown + spicy risk blueprints
-tags:
-  - developer-tools
-  - markdown
-  - repository-analysis
-  - llm
-  - code-analysis
-  - python
----
-
-癤? Dir2md +spicy
-
+﻿# Dir2md +spicy
 ![Dir2md Logo](./dir2md-logo.png)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -33,7 +12,7 @@ Dir2md analyzes directory structures and generates comprehensive markdown docume
 
 **Legend**: [*] Core Feature | [#] Security | [!] Performance | [T] Configuration | [+] User Experience | [o] Fresh in this release
 
-## 1.1.0 Highlights
+## 1.1.x Highlights
 
 - **[*] Fast preset**: `--fast` builds tree + manifest only (no file reads) for ultra-light contexts.
 - **[o] AI-friendly defaults**: `--ai-mode` with capped budgets, stats, manifest on; `--query` ranks files and injects snippets.
@@ -191,38 +170,16 @@ pattern_files = ["file://./.dir2md/patterns.txt"]
 |--------|--------------|----------|-------|----------|
 | `raw` | Unlimited | inline | Off | Development, full code review |
 | `pro` | User-defined | User-defined | Custom | Production use, CI/CD, tuned budgets |
-| `ai` | ??000 (cap) | ref | 16-bit | LLM context prep with query prioritization |
+| `ai` | 6000 (cap) | ref | 16-bit | LLM context prep with query prioritization |
 | `fast` | n/a | off | 16-bit | Tree + manifest only (no contents), ultra-lightweight |
 
 ## Limitations (Current OSS Build)
 - The `raw` preset always forces `--emit-manifest` off; select `pro` when you need manifest output.
 - This enhanced version is distributed via GitHub only; the PyPI `dir2md` package is maintained separately by IsaacBreen with different features.
-- README references Pro-only capabilities (advanced masking, parallel processing, export formats) that are not implemented in this repository.
-
-## Open-Core Model
-
-### Free (OSS) Features
-- Complete directory analysis.
-- Token optimization and sampling.
-- SimHash deduplication.
-- Enhanced security masking (AWS access keys, bearer tokens, private keys, GitHub PATs, generic API keys, database URLs, JWTs, OAuth secrets).
-- All output modes and presets.
-- Deterministic builds.
-
-### Pro Features
-- Advanced security masking (additional cloud and SaaS patterns).
-- Parallel processing and caching.
-- Language-specific analysis plugins.
-- HTML/PDF export options.
-- Team integration (CI/CD, PR bots).
-- Priority support.
-- Pricing and licensing: Open and free to use; see `FEATURES.md` for capability notes.
-
-[Learn more about Pro features](FEATURES.md)
 
 ## Documentation
 
-- **[Feature Comparison](FEATURES.md)** - Complete OSS vs Pro breakdown.
+- **[Feature Documentation](FEATURES.md)** - Detailed capabilities.
 - **[Current Status](CURRENT_FEATURES.md)** - What's implemented now.
 - **[Usage Examples](USAGE_EXAMPLES.md)** - Hands-on guide with examples.
 
@@ -245,7 +202,7 @@ dir2md [path] -o output.md --preset [pro|raw|ai|fast]
 --only-ext "py,js,ts"         # File extensions only
 
 # Security
---masking [off|basic|advanced]         # Secret masking level (advanced requires Pro)
+--masking [off|basic|advanced]         # Secret masking level (advanced adds extra patterns)
 --mask-pattern "api_key\\s*=\\s*['\\\"]?[A-Za-z0-9]+['\\\"]?"  # Repeatable custom regex
 --mask-pattern-file file://./patterns.json  # Load regex patterns (JSON array or newline list)
 
@@ -335,7 +292,7 @@ dir2md . --preset raw --masking basic --budget-tokens 4000
 - Spicy on by default. Disable with `--no-spicy`
 - Enforce failure on high/critical: `--spicy --spicy-strict` (exit code 2)
 - Outputs:
-  - `md` (human-friendly): includes ?쏶picy??section
+  - `md` (human-friendly): includes ??턯icy??section
   - `json`/`jsonl`/manifest (LLM-friendly): `spicy.score`, `spicy.counts`, `spicy.findings[]`
 Severity levels: ok, warn, risk, high, critical.
 
@@ -374,8 +331,8 @@ For additional support:
 
 ## SIDRCE Certification
 
-- **Certification ID**: SIDRCE-DIR2MD-20251203-廓-ARCHON  
-- **Scores**: Integrity 98, Resonance 95, Stability 95, 廓-Score 96 (Certified)  
+- **Certification ID**: SIDRCE-DIR2MD-20251203-兩?ARCHON  
+- **Scores**: Integrity 98, Resonance 95, Stability 95, 兩?Score 96 (Certified)  
 - The spicy refactor distributed responsibilities across `walker`, `selector`, `renderer`, and `orchestrator`, eliminating the former god-object risk.  
 - pytest defaults are captured in `pytest.ini` (cache_dir, pythonpath) to keep runs deterministic across environments.
 - Join discussions in [GitHub Discussions](https://github.com/Flamehaven/dir2md/discussions)
@@ -388,9 +345,10 @@ This project shares its name with [IsaacBreen's dir2md](https://pypi.org/project
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-Pro features are available under a separate commercial license.
-
 ---
 
 Made with care by Flamehaven for developers who want their AI to understand their code.
+
+
+
 
