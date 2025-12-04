@@ -20,9 +20,9 @@ from .core import Config
 from .orchestrator import run_pipeline
 from . import __version__
 
-# Load .env file if it exists (for Pro license and configuration)
+# Load .env file if it exists (for shared defaults)
 def load_env_file():
-    """Load nearest .env for Pro/license/config defaults."""
+    """Load nearest .env for shared config defaults."""
     current = Path.cwd()
     for parent in [current] + list(current.parents):
         env_file = parent / '.env'

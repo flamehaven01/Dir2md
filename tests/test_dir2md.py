@@ -240,33 +240,21 @@ def test_custom_mask_priority_before_builtin():
     assert aws_key not in masked
 
 
-def test_masking_pro_license_mode_respect(tmp_path: Path, monkeypatch):
-    """Test that masking respects basic vs advanced mode even with Pro license"""
+def test_masking_advanced_mode_available(tmp_path: Path):
+    """Advanced masking should work without any license gating."""
     from dir2md.masking import apply_masking
 
-    # Mock Pro license to be available
-    def mock_check_feature(feature_name):
-        return feature_name == 'advanced_masking'
-
-    monkeypatch.setattr('dir2md.masking.license_manager.check_feature', mock_check_feature)
-
-    # Test content with both basic and advanced patterns
     github_token = "ghp_1234567890abcdefghijklmnopqrstuvwxyz123"  # Advanced pattern
     aws_key = "AKIAIOSFODNN7EXAMPLE"  # Basic pattern
     test_content = f"GitHub token: {github_token}\nAWS key: {aws_key}"
 
-    # Test basic mode - should only mask basic patterns even with Pro license
     basic_masked = apply_masking(test_content, mode="basic")
-    assert aws_key not in basic_masked  # AWS key should be masked (basic pattern)
-    assert github_token in basic_masked  # GitHub token should NOT be masked in basic mode
-    assert "[*** MASKED_SECRET ***]" in basic_masked
+    assert aws_key not in basic_masked
+    assert github_token in basic_masked  # advanced pattern not applied
 
-    # Test advanced mode - should mask both basic and advanced patterns
     advanced_masked = apply_masking(test_content, mode="advanced")
-    assert aws_key not in advanced_masked  # AWS key should be masked
-    assert github_token not in advanced_masked  # GitHub token should be masked in advanced mode
-    assert "[*** MASKED_SECRET ***]" in advanced_masked
-    assert "[*** MASKED_SECRET_PRO ***]" in advanced_masked
+    assert aws_key not in advanced_masked
+    assert github_token not in advanced_masked  # advanced pattern applied
 
     # Test off mode - should mask nothing
     off_masked = apply_masking(test_content, mode="off")

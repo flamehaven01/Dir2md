@@ -1,4 +1,4 @@
-import re
+﻿import re
 from typing import Iterable
 
 # Basic masking rules (available in OSS version)
@@ -62,3 +62,4 @@ def apply_masking(text: str, mode: str = "basic", custom_patterns: Iterable[str]
             text = re.sub(pattern, replacement, text)
 
     return text
+
