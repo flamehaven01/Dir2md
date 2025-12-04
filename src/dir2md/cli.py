@@ -60,6 +60,8 @@ DEFAULT_EXCLUDES = [
     "venv",
     "venv_clean",
     ".pytest_cache",
+    ".pytest_cache_local",
+    ".ruff_cache",
     "build",
     "dist",
     "*.pyc",
