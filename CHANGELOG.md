@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2025-12-09
+
+### Security
+- Masking now pre-compiles basic/advanced regexes and skips processing when input exceeds a safe threshold to reduce ReDoS risk.
+- Large individual files are skipped before read when they exceed 1MB, preventing OOM/hangs while still noting the skip.
+
+### Performance
+- Token estimation is cached with LRU (maxsize 2048) and keeps a minimum of one token for empty strings.
+
+### Tests
+- Pytest suite: 22 passed, 2 skipped.
+
 ## [1.1.1] - 2025-12-04
 
 ### Removed

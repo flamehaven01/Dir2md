@@ -20,6 +20,11 @@ Dir2md converts directory structures into AI-friendly markdown with intelligent 
 
 **New to Dir2md?** Check out **[Wiki.md](docs/Wiki.md)** for a friendly introduction with examples.
 
+## Fresh highlights (1.1.2)
+- Masking regexes are pre-compiled with a large-input guard to reduce ReDoS risk.
+- Single-file reads are capped at 1MB and cleanly skipped with warnings to avoid OOM/hangs.
+- Token estimation is now LRU-cached (minimum 1 token) for faster repeated calculations.
+
 ### Try Online
 [**Dir2md Demo on Hugging Face Spaces**](https://huggingface.co/spaces/Flamehaven/dir2md-demo) — No installation required
 

@@ -10,6 +10,8 @@ from .simhash import simhash64, hamming
 from .summary import summarize
 from .search import match_query_snippet
 
+SINGLE_FILE_MAX_BYTES = 1 * 1024 * 1024  # 1MB guard per file
+
 
 def build_candidates(cfg, files: List[Path], root: Path, is_included, is_omitted) -> Tuple[List[dict], Dict[Path, str]]:
     candidates: list[dict] = []
@@ -34,6 +36,35 @@ def build_candidates(cfg, files: List[Path], root: Path, is_included, is_omitted
                 resolved.relative_to(root)
             except ValueError:
                 continue
+
+        try:
+            size = f.stat().st_size
+        except OSError:
+            continue
+
+        if size > SINGLE_FILE_MAX_BYTES:
+            print(f"[WARN] Skipping {f} ({size} bytes > {SINGLE_FILE_MAX_BYTES} bytes limit)")
+            text = f"<Skipped: File too large ({size} bytes > {SINGLE_FILE_MAX_BYTES} bytes limit)>"
+            placeholder_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+            match_score = 0
+            snippet = ""
+            if cfg.query:
+                match_score, snippet = match_query_snippet(text, cfg.query)
+            sh = simhash64(text)
+            if cfg.dedup_bits > 0 and any(hamming(sh, h0) <= cfg.dedup_bits for h0 in sim_seen):
+                continue
+            sim_seen.append(sh)
+            candidates.append({
+                "path": f,
+                "sha256": placeholder_hash,
+                "summary": summarize(f, text, max_lines=10),
+                "text": text,
+                "simhash": sh,
+                "match_score": match_score,
+                "snippet": snippet,
+            })
+            candidate_hash[f] = placeholder_hash
+            continue
 
         try:
             h = hashlib.sha256()

@@ -1,5 +1,8 @@
-﻿import re
-from typing import Iterable
+import re
+from typing import Iterable, Dict, Pattern
+
+# Guard extremely large inputs from expensive regex processing (ReDoS safety)
+MAX_MASK_INPUT_CHARS = 1_000_000
 
 # Basic masking rules (available in OSS version)
 BASIC_MASKING_RULES = {
@@ -28,38 +31,57 @@ MASK_REPLACEMENT = "[*** MASKED_SECRET ***]"
 PRO_MASK_REPLACEMENT = "[*** MASKED_SECRET_PRO ***]"
 CUSTOM_MASK_REPLACEMENT = "[*** MASKED_SECRET ***]"
 
-def get_active_masking_rules(mode: str = "basic"):
-    """Get masking rules; advanced mode always allowed in OSS build."""
-    rules = BASIC_MASKING_RULES.copy()
+# Pre-compiled regex cache for faster and safer masking
+_COMPILED_RULES: Dict[str, Dict[str, Pattern[str]]] = {"basic": {}, "advanced": {}}
 
+
+def _compile_rules() -> None:
+    """Compile masking regex patterns at import time."""
+    for name, pattern in BASIC_MASKING_RULES.items():
+        flags = re.DOTALL if name == "PRIVATE_KEY" else 0
+        _COMPILED_RULES["basic"][name] = re.compile(pattern, flags=flags)
+
+    _COMPILED_RULES["advanced"].update(_COMPILED_RULES["basic"])
+    for name, pattern in ADVANCED_MASKING_RULES.items():
+        _COMPILED_RULES["advanced"][name] = re.compile(pattern)
+
+
+_compile_rules()
+
+
+def get_active_masking_rules(mode: str = "basic") -> dict[str, Pattern[str]]:
+    """Return compiled masking rules for the requested mode."""
     if mode == "advanced":
-        rules.update(ADVANCED_MASKING_RULES)
+        return _COMPILED_RULES["advanced"]
+    return _COMPILED_RULES["basic"]
 
-    return rules
 
 def apply_masking(text: str, mode: str = "basic", custom_patterns: Iterable[str] | None = None) -> str:
     """Apply masking rules with optional custom patterns (no license gating)."""
 
+    if not text:
+        return text
+
     if mode == "off":
-        rules = {}
+        rules: dict[str, Pattern[str]] = {}
     else:
         rules = get_active_masking_rules(mode)
-    
+
+    # Anti-ReDoS: avoid running regexes on extremely large payloads
+    if len(text) > MAX_MASK_INPUT_CHARS:
+        return text
+
     # Apply custom patterns first so project-specific rules run before bundled ones.
     if custom_patterns:
         for pattern in custom_patterns:
             try:
-                text = re.sub(pattern, CUSTOM_MASK_REPLACEMENT, text, flags=re.DOTALL)
+                compiled = re.compile(pattern, flags=re.DOTALL)
+                text = compiled.sub(CUSTOM_MASK_REPLACEMENT, text)
             except re.error as exc:
                 print(f"[WARN] Skipping invalid custom mask pattern: {pattern!r} ({exc})")
 
     for rule_name, pattern in rules.items():
         replacement = PRO_MASK_REPLACEMENT if rule_name in ADVANCED_MASKING_RULES else MASK_REPLACEMENT
-        # Use DOTALL flag for private keys to match across newlines
-        if rule_name == "PRIVATE_KEY":
-            text = re.sub(pattern, replacement, text, flags=re.DOTALL)
-        else:
-            text = re.sub(pattern, replacement, text)
+        text = pattern.sub(replacement, text)
 
     return text
-

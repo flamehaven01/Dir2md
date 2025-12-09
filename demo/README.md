@@ -32,11 +32,10 @@ Convert any public GitHub repository into an LLM-ready markdown blueprint plus o
 2) Choose options: include contents, emit manifest, enable spicy/strict.  
 3) Run and download the markdown/JSONL outputs.
 
-## Fresh highlights (1.1.0)
-- `--fast` preset (tree + manifest only, no file reads).
-- Default dual outputs (md + jsonl) for human + LLM.
-- Spicy risk report (`--spicy`, `--spicy-strict`) with 5 severity levels.
-- Modular pipeline (`walker`, `selector`, `renderer`, `orchestrator`) for cleaner extensibility.
+## Fresh highlights (1.1.2)
+- Masking regex pre-compilation with a large-input guard to reduce ReDoS risk.
+- Single-file read cap at 1MB with skip warnings to avoid OOM/hangs.
+- Token estimation now LRU-cached (minimum 1 token) for faster repeated calculations.
 
 ## Notes
 - Current Gradio SDK: **5.45.0**. A newer **6.0.2** is available; update `sdk_version` and `gradio` pin if you want to try it.
