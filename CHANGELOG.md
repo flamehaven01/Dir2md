@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Performance
 - Token estimation is cached with LRU (maxsize 2048) and keeps a minimum of one token for empty strings.
 
+### Behavior/UX
+- Skipped oversized files now record placeholder hash/summary so the skip is visible in outputs and manifests.
+- Custom masking patterns are compiled before use; invalid patterns emit warnings and are ignored.
+
 ### Tests
 - Pytest suite: 22 passed, 2 skipped.
 
