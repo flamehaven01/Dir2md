@@ -32,7 +32,8 @@ Convert any public GitHub repository into an LLM-ready markdown blueprint plus o
 2) Choose options: include contents, emit manifest, enable spicy/strict.  
 3) Run and download the markdown/JSONL outputs.
 
-## Fresh highlights (1.1.2)
+## Fresh highlights (1.1.3)
+- **Phantom Code Detection**: Integrated dead code analysis to identify "Ghost" structures.
 - Masking regex pre-compilation with a large-input guard to reduce ReDoS risk.
 - Single-file read cap at 1MB with skip warnings to avoid OOM/hangs.
 - Token estimation now LRU-cached (minimum 1 token) for faster repeated calculations.

@@ -20,8 +20,8 @@ Dir2md converts directory structures into AI-friendly markdown with intelligent 
 
 **New to Dir2md?** Check out **[Wiki.md](docs/Wiki.md)** for a friendly introduction with examples.
 
-## Fresh highlights (1.1.2)
-- Masking regexes are pre-compiled with a large-input guard to reduce ReDoS risk.
+## Fresh highlights (1.1.3)
+- **Deep Scan**: Integrated dead code detection via `vulture`.
 - Single-file reads are capped at 1MB and cleanly skipped with warnings to avoid OOM/hangs.
 - Token estimation is now LRU-cached (minimum 1 token) for faster repeated calculations.
 
@@ -76,6 +76,9 @@ dir2md . --masking basic --query "authentication"
 - Symlink traversal outside repository
 - Missing provenance tracking (no manifest)
 - Query provided but no files matched
+- Missing provenance tracking (no manifest)
+- Query provided but no files matched
+- **Phantom Code**: Unused functions/imports (Dead Code) detected via system tools
 
 **Control Spicy behavior:**
 ```bash

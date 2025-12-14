@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2025-12-14
+
+### Added
+- **Phantom Code Detection**: Automatically detects dead code analysis tools in the system path.
+  - Reports unused code/imports as **CRITICAL** "Phantom" findings.
+  - Helps keep codebases clean by identifying structural atrophy.
+
 ## [1.1.2] - 2025-12-09
 
 ### Security
