@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from typing import Dict, List, Tuple
 import subprocess
 import shutil
-import re
 from pathlib import Path
 
 SPICY_LEVELS = ["ok", "warn", "risk", "high", "critical"]
@@ -94,7 +93,7 @@ def evaluate_spicy(cfg, stats, candidates, selected_blocks) -> Tuple[int, Dict[s
                             pass # absolute or outside root
                         
                         bump("critical", 50, "phantom_code", f"Phantom Code Detected: {msg}", "Remove unused code (Structural Atrophy)", file=rel_path, line=lnum)
-        except Exception as e:
+        except Exception:
             # Silent fail for implicit check, or warn if verbose
             pass
 
