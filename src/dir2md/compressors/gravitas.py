@@ -5,8 +5,7 @@ in markdown blueprints using single-byte Unicode symbols, significantly
 reducing token count while maintaining readability.
 """
 
-from typing import Dict, Optional
-import re
+from typing import Dict
 
 
 class GravitasCompressor:

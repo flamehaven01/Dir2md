@@ -171,12 +171,12 @@ if __name__ == "__main__":
 
     print(f"Current query: '{test_query}'")
     print(f"Matched {len(matched_files)} files")
-    print(f"\nSuggested related queries:")
+    print("\nSuggested related queries:")
     for suggestion in suggestions:
         print(f"  - {suggestion}")
 
     # Directory grouping
-    print(f"\nFiles grouped by directory:")
+    print("\nFiles grouped by directory:")
     dir_groups = suggester.suggest_by_directory(matched_files)
     for dir_name, files in dir_groups.items():
         print(f"  {dir_name}:")
