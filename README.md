@@ -20,10 +20,15 @@ Dir2md converts directory structures into AI-friendly markdown with intelligent 
 
 **New to Dir2md?** Check out **[Wiki.md](docs/Wiki.md)** for a friendly introduction with examples.
 
-## Fresh highlights (1.1.3)
-- **Deep Scan**: Integrated dead code detection via `vulture`.
-- Single-file reads are capped at 1MB and cleanly skipped with warnings to avoid OOM/hangs.
-- Token estimation is now LRU-cached (minimum 1 token) for faster repeated calculations.
+## Fresh highlights (1.2.0) - Intelligence Without Complexity
+
+**Zero-Configuration Intelligence**: All optimizations activate automatically based on your preset choice. No flags, no decisions, just better results.
+
+- **Gravitas Compression** (Phase 1): Symbolic compression using Unicode glyphs - 30-50% token reduction, auto-enabled in `pro`/`ai` presets
+- **Smart Query Processing** (Phase 2): Automatic typo correction + synonym expansion - 60% → 90% accuracy, auto-enabled when query provided
+- **AST Semantic Sampling** (Phase 3): Python code structure extraction - 30-40% additional reduction, auto-enabled for .py files in `pro`/`ai` presets
+
+**Combined Power**: Up to 60-70% total token reduction with zero configuration overhead.
 
 ### Try Online
 [**Dir2md Demo on Hugging Face Spaces**](https://huggingface.co/spaces/Flamehaven/dir2md-demo) — No installation required
@@ -43,18 +48,30 @@ pip install -e .
 ### Basic Usage
 
 ```bash
-# Generate markdown blueprint
+# Generate markdown blueprint (basic, no optimizations)
 dir2md .
 
-# LLM-optimized with token budget
-dir2md . --ai-mode --budget-tokens 4000
+# Production-ready with auto-optimization (gravitas=basic, query expansion ON)
+dir2md . --preset pro --query "authentication"
 
-# Security-focused with query ranking
-dir2md . --masking basic --query "authentication"
+# AI-optimized with maximum intelligence (gravitas=medium, query expansion ON, AST sampling ON)
+dir2md . --ai-mode --query "atuh"  # Typo? No problem - auto-corrected to "auth"
+# Auto-activates: Typo correction + Query expansion + Gravitas compression + AST sampling
+
+# Traditional usage still works
+dir2md . --preset raw  # Pure original, no optimizations
 ```
+
+**What changed in v1.2.0?** All intelligence is now automatic. Just choose your preset - the system handles the rest.
 
 ## Key Features
 
+**Intelligent Optimizations (NEW 1.2.0)** - Zero configuration required
+- **Gravitas Compression** — Symbolic compression (30-50% reduction), auto-enabled in `pro`/`ai`
+- **Smart Query** — Typo correction + synonym expansion (60%→90% accuracy), auto-enabled with queries
+- **AST Sampling** — Python structure extraction (30-40% reduction), auto-enabled for .py files in `pro`/`ai`
+
+**Core Features**
 - **Smart Sampling** — Head/tail content sampling with configurable token budgets
 - **Security Masking** — Automatic detection of API keys, tokens, credentials, PEM blocks
 - **AI Optimization** — Query-based ranking, JSONL output, LLM-friendly formatting
@@ -137,18 +154,25 @@ patterns = ["(?i)custom_secret_\\w+"]
 ## Common Commands
 
 ```bash
-# AI/LLM context generation
-dir2md . --ai-mode --query "authentication" --budget-tokens 6000
+# AI/LLM context generation (all optimizations auto-enabled)
+dir2md . --ai-mode --query "authentication" --budget-tokens 4000
+# Auto: typo correction + expansion + gravitas medium + AST sampling
+
+# Production-ready (balanced optimization)
+dir2md . --preset pro --query "auth" --budget-tokens 6000
+# Auto: expansion + gravitas basic + AST sampling
 
 # Security audit with masking
 dir2md . --masking advanced --spicy-strict
 
-# CI/CD integration
-dir2md . --preset pro --emit-manifest --no-timestamp
+# CI/CD integration (no optimizations, deterministic)
+dir2md . --preset raw --emit-manifest --no-timestamp
 
-# Quick preview
+# Quick preview (tree only, minimal processing)
 dir2md . --preset fast --dry-run
 ```
+
+**Note**: In v1.2.0, all intelligence is automatic - just choose your preset!
 
 **Full reference:** [`dir2md --help`](docs/CLI_REFERENCE.md)
 

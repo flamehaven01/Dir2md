@@ -9,6 +9,7 @@ from .masking import apply_masking
 from .simhash import simhash64, hamming
 from .summary import summarize
 from .search import match_query_snippet
+from .samplers.semantic import SemanticSampler
 
 SINGLE_FILE_MAX_BYTES = 1 * 1024 * 1024  # 1MB guard per file
 
@@ -88,6 +89,15 @@ def build_candidates(cfg, files: List[Path], root: Path, is_included, is_omitted
         text = raw.decode("utf-8", errors="replace")
         if cfg.masking_mode != "off" or cfg.custom_mask_patterns:
             text = apply_masking(text, mode=cfg.masking_mode, custom_patterns=cfg.custom_mask_patterns)
+
+        # Phase 3: AST semantic sampling (auto-enabled for Python files in ai/pro presets)
+        if cfg.preset in ['ai', 'pro'] and str(f).endswith('.py') and len(text) > 500:
+            sampler = SemanticSampler(preserve_ratio=0.6 if cfg.preset == 'ai' else 0.7)
+            sampled_text, stats = sampler.sample_python_code(text)
+            if stats['method'] == 'ast_semantic' and stats['reduction'] > 10:
+                text = sampled_text
+                # Note: Semantic sampling applied with {stats['reduction']:.1f}% reduction
+
         match_score = 0
         snippet = ""
         if cfg.query:

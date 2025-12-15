@@ -19,6 +19,9 @@ except ModuleNotFoundError:
 from .core import Config
 from .orchestrator import run_pipeline
 from . import __version__
+from .compressors.gravitas import GravitasCompressor
+from .query.expander import QueryExpander
+from .query.corrector import QueryCorrector
 
 # Load .env file if it exists (for shared defaults)
 def load_env_file():
@@ -294,7 +297,6 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--spicy", dest="spicy", action="store_true", default=True, help="Enable spicy risk report (default: on)")
     ap.add_argument("--no-spicy", dest="spicy", action="store_false", help="Disable spicy risk report")
     ap.add_argument("--spicy-strict", action="store_true", help="Exit non-zero if spicy finds high/critical findings")
-
     ap.add_argument("-V", "--version", action="version", version=f"dir2md {__version__}")
 
     if config_from_file:
@@ -359,6 +361,35 @@ def main(argv: list[str] | None = None) -> int:
     if ns.fast:
         cfg.preset = "fast"
 
+    # Phase 1: Auto-activate based on preset (v1.2.0)
+    PRESET_OPTIMIZATIONS = {
+        'raw': {'gravitas': 'off', 'expand': False},
+        'fast': {'gravitas': 'off', 'expand': False},
+        'pro': {'gravitas': 'basic', 'expand': True},
+        'ai': {'gravitas': 'medium', 'expand': True},
+    }
+
+    preset_opts = PRESET_OPTIMIZATIONS.get(cfg.preset, {'gravitas': 'off', 'expand': False})
+    gravitas_level = preset_opts['gravitas']
+    enable_expand = preset_opts['expand'] and bool(cfg.query)
+
+    # Phase 2: Query typo correction (auto-enabled when query provided)
+    if cfg.query:
+        corrector = QueryCorrector()
+        corrected_query = corrector.correct(cfg.query)
+        if corrected_query != cfg.query:
+            _print_status("INFO", f"Query corrected: '{cfg.query}' -> '{corrected_query}' (auto)", ns.progress or "dots")
+            cfg.query = corrected_query
+
+    # Phase 2: Query expansion (auto-enabled for pro/ai presets when query provided)
+    expanded_query = cfg.query
+    if enable_expand and cfg.query:
+        expander = QueryExpander()
+        original_query = cfg.query
+        expanded_query = expander.expand(cfg.query, max_terms=8)
+        cfg.query = expanded_query
+        _print_status("INFO", f"Query expanded: '{original_query}' -> '{expanded_query}' (auto: {cfg.preset})", ns.progress or "dots")
+
     # Friendly one-line plan summary after preset application
     plan_summary = (
         f"preset={cfg.preset} "
@@ -391,7 +422,24 @@ def main(argv: list[str] | None = None) -> int:
             _print_status("INFO", f"DRY_RUN format={fmt} preset={cfg.preset} mode={cfg.llm_mode} est_tokens~{cfg.budget_tokens} md={h}", ns.progress or "dots")
             continue
 
-        out_path.write_text(content, encoding="utf-8")
+        # Phase 1: Apply Gravitas compression if enabled (v1.2.0, auto-activated by preset)
+        final_content = content
+        if gravitas_level and gravitas_level != "off" and fmt == "md":
+            compressor = GravitasCompressor(level=gravitas_level)
+            compressed_content = compressor.compress(content)
+            stats = compressor.get_stats(content)
+
+            # Add compression stats as HTML comment at the end
+            stats_comment = (
+                f"\n\n<!-- Gravitas Compression ({gravitas_level}): "
+                f"{stats['reduction_percent']:.1f}% reduction "
+                f"({stats['original_size']} -> {stats['compressed_size']} bytes, "
+                f"{stats['symbols_used']} symbols, auto: {cfg.preset}) -->\n"
+            )
+            final_content = compressed_content + stats_comment
+            _print_status("INFO", f"Gravitas-{gravitas_level}: {stats['reduction_percent']:.1f}% reduction (auto: {cfg.preset})", ns.progress or "dots")
+
+        out_path.write_text(final_content, encoding="utf-8")
         if ns.capsule and fmt == "md":
             with zipfile.ZipFile(out_path.with_suffix('.capsule.zip'), 'w') as z:
                 z.write(out_path)
