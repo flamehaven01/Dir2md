@@ -1,10 +1,10 @@
 """Candidate selection, sampling, and deduplication."""
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+from .manifest import sha256_string, sha256_file
 from .masking import apply_masking
 from .simhash import simhash64, hamming
 from .summary import summarize
@@ -46,7 +46,7 @@ def build_candidates(cfg, files: List[Path], root: Path, is_included, is_omitted
         if size > SINGLE_FILE_MAX_BYTES:
             print(f"[WARN] Skipping {f} ({size} bytes > {SINGLE_FILE_MAX_BYTES} bytes limit)")
             text = f"<Skipped: File too large ({size} bytes > {SINGLE_FILE_MAX_BYTES} bytes limit)>"
-            placeholder_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+            placeholder_hash = sha256_string(text)
             match_score = 0
             snippet = ""
             if cfg.query:
@@ -68,12 +68,14 @@ def build_candidates(cfg, files: List[Path], root: Path, is_included, is_omitted
             continue
 
         try:
-            h = hashlib.sha256()
+            # Compute full file hash (OSOT: using manifest.sha256_file)
+            full_file_hash = sha256_file(f)
+
+            # Collect limited bytes for content sampling
             collected = bytearray()
             limit = cfg.max_bytes
             with f.open("rb") as handle:
                 for chunk in iter(lambda: handle.read(65536), b""):
-                    h.update(chunk)
                     if limit is None or len(collected) < limit:
                         if limit is None:
                             collected.extend(chunk)
@@ -81,7 +83,6 @@ def build_candidates(cfg, files: List[Path], root: Path, is_included, is_omitted
                             remaining = limit - len(collected)
                             if remaining > 0:
                                 collected.extend(chunk[:remaining])
-            full_file_hash = h.hexdigest()
             raw = bytes(collected)
         except Exception:
             continue

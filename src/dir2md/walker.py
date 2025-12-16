@@ -4,7 +4,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable, List
 
-from pathspec import PathSpec
+try:
+    from pathspec import PathSpec
+except Exception:
+    PathSpec = None  # type: ignore
 
 from .gitignore import build_gitignore_matcher
 

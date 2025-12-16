@@ -1,7 +1,6 @@
 """Command-line interface for dir2md."""
 
 import argparse
-import hashlib
 import json
 import os
 import zipfile
@@ -19,6 +18,7 @@ except ModuleNotFoundError:
 from .core import Config
 from .orchestrator import run_pipeline
 from . import __version__
+from .manifest import sha256_string
 from .compressors.gravitas import GravitasCompressor
 from .query.expander import QueryExpander
 from .query.corrector import QueryCorrector
@@ -418,7 +418,7 @@ def main(argv: list[str] | None = None) -> int:
         out_path = output.with_suffix(f".{fmt}") if fmt != "md" else output.with_suffix(".md")
 
         if ns.dry_run:
-            h = hashlib.sha256(content.encode('utf-8')).hexdigest()[:10]
+            h = sha256_string(content)[:10]
             _print_status("INFO", f"DRY_RUN format={fmt} preset={cfg.preset} mode={cfg.llm_mode} est_tokens~{cfg.budget_tokens} md={h}", ns.progress or "dots")
             continue
 
