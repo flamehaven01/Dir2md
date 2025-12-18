@@ -4,9 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
-import subprocess
-import shutil
-from pathlib import Path
 
 SPICY_LEVELS = ["ok", "warn", "risk", "high", "critical"]
 LEVEL_TO_CHILI = {
@@ -60,42 +57,9 @@ def evaluate_spicy(cfg, stats, candidates, selected_blocks) -> Tuple[int, Dict[s
     if cfg.masking_mode == "off" and cfg.preset != "raw":
         bump("high", 20, "security", "masking is off in non-raw preset (secrets may leak)", "use --masking basic or advanced")
 
-    # Phantom Code Detection (Implicit Check)
-    vulture_cmd = shutil.which("vulture")
-    if vulture_cmd:
-        try:
-            # Run vulture on root
-            # vulture format: file.py:line: unused function 'foo' (60% confidence)
-            proc = subprocess.run(
-                [vulture_cmd, str(cfg.root), "--min-confidence", "80", "--exclude", ".venv,.git,.pytest_cache,dist,build"],
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-            if proc.stdout:
-                for line in proc.stdout.splitlines():
-                    line = line.strip()
-                    if not line:
-                        continue
-                    # heuristic parse
-                    parts = line.split(":", 2)
-                    if len(parts) >= 3:
-                        fpath = parts[0].strip()
-                        try:
-                            lnum = int(parts[1].strip())
-                        except ValueError:
-                            lnum = 0
-                        msg = parts[2].strip()
-                        rel_path = fpath
-                        try:
-                            rel_path = str(Path(fpath).relative_to(cfg.root))
-                        except ValueError:
-                            pass # absolute or outside root
-                        
-                        bump("critical", 50, "phantom_code", f"Phantom Code Detected: {msg}", "Remove unused code (Structural Atrophy)", file=rel_path, line=lnum)
-        except Exception:
-            # Silent fail for implicit check, or warn if verbose
-            pass
+    # NOTE: Phantom Code Detection via external tools (like vulture) removed in v1.2.1
+    # Reason: Security risk (RCE vector via malicious binary in PATH) + unreliable dependency
+    # Future: Implement dead code detection using AST analysis or vulture library API (not subprocess)
 
     if cfg.follow_symlinks:
         # rough: if any candidate path escapes root we already skipped; still warn

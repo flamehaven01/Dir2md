@@ -5,6 +5,103 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2025-12-18
+
+### Security & Reliability Patch
+
+This release addresses critical security and reliability issues identified in the SIDRCE Spicy Audit.
+
+### Fixed
+
+#### CRITICAL: Markdown Fence Injection (Issue #5)
+- **Problem**: File content containing triple backticks (```) could break markdown output and potentially inject misleading content
+- **Solution**: Implemented dynamic fence escaping that counts consecutive backticks in content and uses N+1 backticks for outer fence
+- **Impact**: Prevents markdown structure corruption and potential injection attacks
+- **Files**: `src/dir2md/markdown.py`
+
+#### HIGH: Subprocess RCE Vector (Issue #1)
+- **Problem**: `vulture` subprocess call created RCE vector if malicious binary in PATH + unreliable dependency on external tool
+- **Solution**: Removed subprocess.run() call entirely; documented future approach using AST or library API
+- **Impact**: Eliminates security risk and removes unreliable external dependency
+- **Files**: `src/dir2md/spicy.py`
+
+#### MEDIUM: Silent Exception Failures (Issue #2)
+- **Problem**: `try-except-pass` blocks silently ignored .env loading failures, making debugging impossible
+- **Solution**: Replaced bare `except Exception: pass` with specific exception handling (OSError, UnicodeDecodeError) and logging.warning()
+- **Impact**: Users now see warnings when configuration loading fails
+- **Files**: `src/dir2md/cli.py`
+
+#### LOW: Aggressive Glob Expansion (Issue #3)
+- **Problem**: Auto-expansion of patterns (e.g., `foo/` → `[foo/, foo/**, **/foo, **/foo/**]`) violated user intent and caused performance issues in large repos
+- **Solution**: Removed automatic expansion; now respects gitignore standard (`foo/` means `foo/`, `**/foo` for recursive)
+- **Impact**: Better performance, predictable behavior, respects principle of least surprise
+- **Files**: `src/dir2md/walker.py`
+
+#### LOW: Hardcoded DEFAULT_EXCLUDES (Issue #4)
+- **Problem**: 20+ hardcoded exclude patterns with personal preferences (`.pytest_cache_local`) and no easy way to customize
+- **Solution**: Moved to external `defaults.json` file, removed personal preferences, added graceful fallback
+- **Impact**: Easier maintenance, user can modify excludes by editing JSON file, cleaner codebase
+- **Files**: `src/dir2md/cli.py`, `src/dir2md/defaults.json` (new)
+
+### Added
+- **Configuration File**: `src/dir2md/defaults.json` - External default exclusion patterns
+- **Package Data**: Configured `pyproject.toml` to include `defaults.json` in distribution
+- **Priority System**: Three-tier exclusion pattern priority (user > project > system)
+  - System defaults: `defaults.json` or custom file via `--defaults-file`
+  - Project config: `pyproject.toml` `[tool.dir2md]` `excludes = [...]`
+  - User CLI: `--exclude-glob` (highest priority)
+- **CLI Argument**: `--defaults-file` - Specify custom defaults.json path
+- **pyproject.toml Support**: `[tool.dir2md.excludes]` - Project-level default excludes
+
+### Removed
+- External tool dependency: `vulture` subprocess execution (security risk)
+- Unused imports: `subprocess`, `shutil` from `spicy.py`
+- Personal preferences: `.pytest_cache_local` from default excludes
+- Aggressive glob expansion: Non-glob patterns no longer auto-expanded
+
+### Changed
+- Glob pattern handling now respects user intent per gitignore standard
+- Default excludes now loaded from JSON file with graceful fallback
+- Exclusion pattern system redesigned with three-tier priority (backwards compatible)
+
+### Notes
+- All fixes maintain backward compatibility
+- No breaking changes to CLI interface
+- Users who relied on auto-glob expansion should explicitly use `**/pattern` for recursive matching
+- Files containing ``` now render correctly (markdown fence escaping)
+
+### Usage Examples
+
+**Priority System:**
+```bash
+# System defaults only (defaults.json)
+dir2md .
+
+# Custom system defaults
+dir2md . --defaults-file my-defaults.json
+
+# Project + system defaults (pyproject.toml overrides system)
+# In pyproject.toml:
+# [tool.dir2md]
+# excludes = ["*.log", "temp/"]
+
+# User overrides everything (highest priority)
+dir2md . --exclude-glob "secret-data/"
+```
+
+**pyproject.toml Configuration:**
+```toml
+[tool.dir2md]
+excludes = [
+    "*.log",
+    "temp/",
+    "cache/",
+    "*.tmp"
+]
+# These patterns will be added to system defaults
+# User CLI args (--exclude-glob) take precedence over these
+```
+
 ## [1.2.0] - 2025-12-15
 
 ### Philosophy: Intelligence Without Complexity

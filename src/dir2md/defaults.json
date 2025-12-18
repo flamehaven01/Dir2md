@@ -1,0 +1,27 @@
+{
+  "_comment": "Default exclusion patterns for dir2md",
+  "_usage": "These patterns are automatically applied unless overridden in pyproject.toml [tool.dir2md.excludes]",
+  "excludes": [
+    ".git",
+    "__pycache__",
+    "node_modules",
+    ".venv",
+    "venv",
+    "venv_clean",
+    ".pytest_cache",
+    ".ruff_cache",
+    "build",
+    "dist",
+    "*.pyc",
+    ".DS_Store",
+    ".env",
+    ".env.*",
+    "*.env",
+    "*.pem",
+    "*.key",
+    "*.p12",
+    "*.pfx",
+    "*.cer",
+    "*.crt"
+  ]
+}

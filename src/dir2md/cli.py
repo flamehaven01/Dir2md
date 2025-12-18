@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import logging
 import os
 import zipfile
 from pathlib import Path
@@ -37,8 +38,9 @@ def load_env_file():
                         key, value = line.split('=', 1)
                         os.environ[key.strip()] = value.strip()
                 break
-            except Exception:
-                pass
+            except (OSError, UnicodeDecodeError) as e:
+                logging.warning(f"Failed to load .env file at {env_file}: {e}")
+                break
 
 load_env_file()
 
@@ -55,30 +57,42 @@ def _print_status(level: str, message: str, progress: str | None) -> None:
     print(f"[{level}] {message}")
 
 DEFAULT_OUTPUT = "PROJECT_BLUEPRINT.md"
-DEFAULT_EXCLUDES = [
-    ".git",
-    "__pycache__",
-    "node_modules",
-    ".venv",
-    "venv",
-    "venv_clean",
-    ".pytest_cache",
-    ".pytest_cache_local",
-    ".ruff_cache",
-    "build",
-    "dist",
-    "*.pyc",
-    ".DS_Store",
-    ".env",
-    ".env.*",
-    "*.env",
-    "*.pem",
-    "*.key",
-    "*.p12",
-    "*.pfx",
-    "*.cer",
-    "*.crt",
-]
+
+
+def _load_default_excludes(custom_path: str | None = None) -> list[str]:
+    """
+    Load default exclusion patterns from defaults.json.
+
+    Moved to external file in v1.2.1 to allow easier customization.
+    Removed personal preferences (e.g., .pytest_cache_local).
+
+    Priority system (v1.2.1):
+    - System defaults (this function): defaults.json
+    - Project config: pyproject.toml [tool.dir2md.excludes]
+    - User CLI: --exclude-glob (highest priority)
+
+    Args:
+        custom_path: Optional path to custom defaults file (--defaults-file)
+
+    Returns:
+        List of default exclusion patterns
+    """
+    if custom_path:
+        defaults_path = Path(custom_path)
+    else:
+        defaults_path = Path(__file__).parent / "defaults.json"
+
+    try:
+        with open(defaults_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            return data.get("excludes", [])
+    except (OSError, json.JSONDecodeError) as e:
+        logging.warning(f"Failed to load defaults file at {defaults_path}: {e}. Using fallback excludes.")
+        # Fallback minimal excludes if file load fails
+        return [".git", "__pycache__", "node_modules", ".venv", "venv", ".pytest_cache", ".env", "*.pyc"]
+
+
+DEFAULT_EXCLUDES = _load_default_excludes()
 _CONFIG_KEYS = {
     "path",
     "output",
@@ -92,6 +106,7 @@ _CONFIG_KEYS = {
     "explain",
     "include_glob",
     "exclude_glob",
+    "excludes",  # Added in v1.2.1: project-level default excludes
     "omit_glob",
     "only_ext",
     "respect_gitignore",
@@ -106,6 +121,7 @@ _CONFIG_KEYS = {
     "masking",
     "mask_patterns",
     "mask_pattern_files",
+    "defaults_file",  # Added in v1.2.1: custom defaults file path
 }
 
 
@@ -161,7 +177,7 @@ def _load_pyproject_config() -> dict[str, Any]:
                         else:
                             sanitized["mask_pattern_files"].append(str(pattern_files))
                 continue
-            if key in {"include_glob", "exclude_glob", "omit_glob", "mask_patterns"}:
+            if key in {"include_glob", "exclude_glob", "excludes", "omit_glob", "mask_patterns"}:
                 if value is None:
                     continue
                 if isinstance(value, list):
@@ -277,6 +293,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--include-glob", action="append", help="Gitignore-style include pattern (gitwildmatch syntax)")
     ap.add_argument("--exclude-glob", action="append", help="Gitignore-style exclude pattern")
     ap.add_argument("--omit-glob", action="append", help="Gitignore-style omit pattern (skips content)")
+    ap.add_argument("--defaults-file", help="Path to custom defaults.json file (overrides system defaults)")
     ap.add_argument("--only-ext", help="Comma-separated extension list (e.g. py,md)")
     ap.add_argument("--respect-gitignore", action="store_true")
     ap.add_argument("--follow-symlinks", action="store_true")
@@ -319,11 +336,23 @@ def main(argv: list[str] | None = None) -> int:
             output = root / f"{stem}_blueprint_{ts}{suffix}"
     only_ext = {e.strip().lstrip('.') for e in (ns.only_ext or "").split(',') if e.strip()} or None
 
+    # Priority system for excludes (v1.2.1):
+    # 1. System defaults (lowest priority): defaults.json or --defaults-file
+    # 2. Project config (medium priority): pyproject.toml [tool.dir2md.excludes]
+    # 3. User CLI (highest priority): --exclude-glob
+    system_defaults = _load_default_excludes(getattr(ns, 'defaults_file', None))
+    project_excludes = config_from_file.get('excludes', []) if config_from_file else []
+    user_excludes = list(ns.exclude_glob or [])
+
+    # Build final exclude list (system < project < user)
+    # Note: User excludes come first to ensure they take precedence in pathspec matching
+    final_excludes = user_excludes + project_excludes + system_defaults
+
     cfg = Config(
         root=root,
         output=output,
         include_globs=list(ns.include_glob or []),
-        exclude_globs=list(ns.exclude_glob or []) + DEFAULT_EXCLUDES,
+        exclude_globs=final_excludes,
         omit_globs=list(ns.omit_glob or []),
         respect_gitignore=bool(ns.respect_gitignore or False),
         follow_symlinks=bool(ns.follow_symlinks or False),

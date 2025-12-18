@@ -16,6 +16,17 @@ _GLOB_SPECIAL_CHARS = set("*?[")
 
 
 def _expand_glob_patterns(patterns: List[str]) -> list[str]:
+    """
+    Normalize glob patterns without aggressive auto-expansion.
+
+    Respects user intent per gitignore standard:
+    - foo/     means foo/ in current context
+    - **/foo   means recursive search
+    - foo/**   means everything under foo/
+
+    Removed in v1.2.1: Automatic expansion of non-glob patterns.
+    Reason: Violated principle of least surprise, caused performance issues in large repos.
+    """
     expanded: list[str] = []
     seen: set[str] = set()
     for raw in patterns:
@@ -24,14 +35,10 @@ def _expand_glob_patterns(patterns: List[str]) -> list[str]:
         normalized = raw.replace("\\", "/")
         if not normalized:
             continue
-        candidates = [normalized]
-        if not any(ch in normalized for ch in _GLOB_SPECIAL_CHARS):
-            base = normalized.rstrip("/") or normalized
-            candidates.extend([f"{base}/**", f"**/{base}", f"**/{base}/**"])
-        for candidate in candidates:
-            if candidate not in seen:
-                seen.add(candidate)
-                expanded.append(candidate)
+        # Respect user intent - no automatic expansion
+        if normalized not in seen:
+            seen.add(normalized)
+            expanded.append(normalized)
     return expanded
 
 
