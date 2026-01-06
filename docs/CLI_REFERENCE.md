@@ -14,12 +14,14 @@ dir2md [PATH] [OPTIONS]
 
 ### Output Configuration
 - `-o, --output FILE` - Output file path (default: auto-generated)
-- `--output-format [md|json|jsonl]` - Output format
+- `--output-format [md|json|jsonl|both]` - Output format (`both` = md + jsonl)
 - `--emit-manifest` - Generate .manifest.json metadata file
 - `--no-timestamp` - Omit timestamp from filenames (CI-friendly)
 
 ### Presets
-- `--preset [raw|pro|ai|fast]` - Quick configuration profiles
+- `--preset [raw|pro]` - Quick configuration profiles
+- `--ai-mode` - Enable AI-friendly defaults (ref mode + capped budget)
+- `--fast` - Tree + manifest only (no contents)
 
 | Preset | Token Budget | Mode | Best For |
 |--------|--------------|------|----------|
@@ -31,13 +33,21 @@ dir2md [PATH] [OPTIONS]
 ### Token Budget Control
 - `--budget-tokens NUM` - Total token budget for all files
 - `--max-file-tokens NUM` - Per-file token limit
-- `--sample-mode [off|ref|inline]` - Content sampling strategy
+- `--llm-mode [off|ref|summary|inline]` - Content sampling strategy
+- `--sample-head NUM` - Head lines to include when truncating
+- `--sample-tail NUM` - Tail lines to include when truncating
+- `--dedup NUM` - SimHash Hamming distance threshold for dedup
+- `--explain` - Include capsule comments explaining selections
 
 ### File Filtering
 - `--include-glob PATTERN` - Include files matching glob pattern
 - `--exclude-glob PATTERN` - Exclude files matching glob pattern
+- `--omit-glob PATTERN` - Skip content for matching files (still listed)
 - `--only-ext EXT1,EXT2` - Only process specified extensions
-- `--exclude-ext EXT1,EXT2` - Exclude specified extensions
+- `--respect-gitignore` - Respect .gitignore rules
+- `--follow-symlinks` - Follow symlinks that remain inside root
+- `--max-bytes NUM` - Max bytes read per file
+- `--max-lines NUM` - Max lines per file
 
 ### Security & Masking
 - `--masking [off|basic|advanced]` - Secret masking level
@@ -54,7 +64,10 @@ dir2md [PATH] [OPTIONS]
 
 ### Utilities
 - `--dry-run` - Preview configuration without writing files
-- `--verbose` - Increase output verbosity
+- `--progress [full|dots|none]` - Progress verbosity
+- `--stats` - Include stats summary in output
+- `--capsule` - Package outputs into a zip capsule
+- `--defaults-file FILE` - Use custom defaults.json
 - `--version` - Show version information
 - `--help` - Display help message
 

@@ -37,6 +37,10 @@ Automatic detection and masking of sensitive information.
 - `basic` - Common patterns (API keys, tokens, PEM blocks)
 - `advanced` - Extended patterns including database URLs, JWTs
 
+**Large File Handling (v1.2.2):**
+- Inputs over 1,000,000 chars are masked in overlapping chunks (no bypass).
+- Chunked masking preserves length so offsets and line counts remain stable.
+
 **Custom Patterns:**
 ```bash
 # Single pattern
@@ -77,6 +81,11 @@ Fine-grained control over output size for LLM context windows.
 - Query-matched files prioritized
 - Small files included whole
 - Large files sampled efficiently
+
+### Symlink Safety (v1.2.2)
+When `--follow-symlinks` is enabled, Dir2md only traverses symlinked directories
+that resolve inside the project root. Files resolving outside the root are
+skipped to prevent accidental data leakage.
 
 ## Output Formats
 
