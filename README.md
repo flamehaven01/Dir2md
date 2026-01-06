@@ -5,9 +5,14 @@
 </p>
 
 <p align="center">
+  <a href="https://pypi.org/project/dir2md/"><img src="https://img.shields.io/pypi/v/dir2md?color=blue&label=PyPI" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/dir2md/"><img src="https://img.shields.io/pypi/dm/dir2md?color=blue&label=PyPI%20downloads" alt="PyPI downloads"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.9+-blue.svg" alt="Python 3.9+"></a>
+  <a href="https://github.com/flamehaven01/Dir2md/releases"><img src="https://img.shields.io/github/v/release/flamehaven01/Dir2md?include_prereleases&label=GitHub%20release" alt="GitHub release"></a>
   <a href=".github/workflows/release.yml"><img src="https://img.shields.io/badge/CI%2FCD-release%20workflow-blue" alt="CI/CD"></a>
+  <a href="https://github.com/flamehaven01/Dir2md"><img src="https://img.shields.io/github/stars/flamehaven01/Dir2md?label=stars" alt="GitHub stars"></a>
+  <a href="https://github.com/flamehaven01/Dir2md/issues"><img src="https://img.shields.io/github/issues/flamehaven01/Dir2md?label=issues" alt="GitHub issues"></a>
 </p>
 
 <p align="center">
