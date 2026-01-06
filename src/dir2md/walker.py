@@ -63,7 +63,7 @@ def _compile_pathspec(patterns: List[str]):
     expanded = _expand_glob_patterns(patterns)
     if not expanded:
         return None
-    spec = PathSpec.from_lines("gitwildmatch", expanded)
+    spec = PathSpec.from_lines("gitignore", expanded)
     allows_root = any(_pattern_allows_root_file(p) for p in expanded)
     return type("Compiled", (), {"spec": spec, "allows_root_files": allows_root})
 
@@ -126,8 +126,15 @@ def collect_files(
             joint = "`-- " if last else "|-- "
             tree_lines.append(f"{prefix}{joint}{child.name}")
             if child.is_dir():
-                if child.is_symlink() and not follow_symlinks:
-                    continue
+                if child.is_symlink():
+                    if not follow_symlinks:
+                        continue
+                    try:
+                        resolved = child.resolve(strict=False)
+                        resolved.relative_to(root)
+                    except (OSError, RuntimeError, ValueError):
+                        # Skip symlinked directories that escape the root.
+                        continue
                 walk(child, prefix + ("    " if last else "|   "))
             else:
                 files.append(child)

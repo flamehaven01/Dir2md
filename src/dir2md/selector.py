@@ -37,6 +37,13 @@ def build_candidates(cfg, files: List[Path], root: Path, is_included, is_omitted
                 resolved.relative_to(root)
             except ValueError:
                 continue
+        elif cfg.follow_symlinks:
+            # When following symlinks, ensure files still resolve within root.
+            try:
+                resolved = f.resolve(strict=False)
+                resolved.relative_to(root)
+            except (OSError, RuntimeError, ValueError):
+                continue
 
         try:
             size = f.stat().st_size

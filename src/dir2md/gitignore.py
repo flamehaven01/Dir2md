@@ -35,7 +35,7 @@ def build_gitignore_matcher(root: Path) -> Optional[Callable[[str], bool]]:
         lines = top.read_text(encoding='utf-8', errors='ignore').splitlines() + lines
     if not lines:
         return None
-    spec = PathSpec.from_lines("gitwildmatch", lines)
+    spec = PathSpec.from_lines("gitignore", lines)
     def match(relpath: str) -> bool:
         return spec.match_file(relpath)
     return match

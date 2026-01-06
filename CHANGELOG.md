@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-01-06
+### Security & Compatibility Patch
+This release hardens symlink handling, preserves secret masking for large files, and removes pathspec deprecation warnings.
+
+### Fixed
+- **CRITICAL**: Prevented symlinked directory traversal from escaping root when `--follow-symlinks` is enabled
+- **CRITICAL**: Large inputs are now masked in chunks instead of bypassing masking entirely
+- **COMPAT**: PathSpec matching uses `gitignore` engine to avoid deprecation warnings
+
+### Changed
+- Updated internal version markers to `1.2.2`
+
 ## [1.2.1] - 2025-12-18
 
 ### Security & Reliability Patch

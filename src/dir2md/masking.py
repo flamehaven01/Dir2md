@@ -3,6 +3,7 @@ from typing import Iterable, Dict, Pattern
 
 # Guard extremely large inputs from expensive regex processing (ReDoS safety)
 MAX_MASK_INPUT_CHARS = 1_000_000
+MAX_MASK_CHUNK_OVERLAP = 256
 
 # Basic masking rules (available in OSS version)
 BASIC_MASKING_RULES = {
@@ -49,11 +50,75 @@ def _compile_rules() -> None:
 _compile_rules()
 
 
-def get_active_masking_rules(mode: str = "basic") -> dict[str, Pattern[str]]:
+def get_active_masking_rules(mode: str = "basic") -> dict[str, Pattern[str]]:   
     """Return compiled masking rules for the requested mode."""
     if mode == "advanced":
         return _COMPILED_RULES["advanced"]
     return _COMPILED_RULES["basic"]
+
+
+def _length_preserving_replace(match: re.Match, replacement: str) -> str:
+    matched = match.group(0)
+    if not matched:
+        return replacement
+    if len(replacement) >= len(matched):
+        return replacement[: len(matched)]
+    return replacement + ("*" * (len(matched) - len(replacement)))
+
+
+def _apply_masking_rules(
+    text: str,
+    rules: dict[str, Pattern[str]],
+    custom_patterns: Iterable[str] | None,
+    length_preserving: bool,
+) -> str:
+    # Apply custom patterns first so project-specific rules run before bundled ones.
+    if custom_patterns:
+        for pattern in custom_patterns:
+            try:
+                compiled = re.compile(pattern, flags=re.DOTALL)
+                if length_preserving:
+                    text = compiled.sub(
+                        lambda m: _length_preserving_replace(m, CUSTOM_MASK_REPLACEMENT),
+                        text,
+                    )
+                else:
+                    text = compiled.sub(CUSTOM_MASK_REPLACEMENT, text)
+            except re.error as exc:
+                print(f"[WARN] Skipping invalid custom mask pattern: {pattern!r} ({exc})")
+
+    for rule_name, pattern in rules.items():
+        replacement = PRO_MASK_REPLACEMENT if rule_name in ADVANCED_MASKING_RULES else MASK_REPLACEMENT
+        if length_preserving:
+            text = pattern.sub(lambda m: _length_preserving_replace(m, replacement), text)
+        else:
+            text = pattern.sub(replacement, text)
+    return text
+
+
+def _mask_large_text(
+    text: str,
+    rules: dict[str, Pattern[str]],
+    custom_patterns: Iterable[str] | None,
+) -> str:
+    if not rules and not custom_patterns:
+        return text
+    chunk_size = MAX_MASK_INPUT_CHARS
+    overlap = min(MAX_MASK_CHUNK_OVERLAP, max(0, chunk_size // 10))
+    out_parts: list[str] = []
+    text_len = len(text)
+    start = 0
+    while start < text_len:
+        end = min(start + chunk_size, text_len)
+        window_start = max(0, start - overlap)
+        window_end = min(text_len, end + overlap)
+        window = text[window_start:window_end]
+        masked = _apply_masking_rules(window, rules, custom_patterns, length_preserving=True)
+        slice_start = start - window_start
+        slice_end = slice_start + (end - start)
+        out_parts.append(masked[slice_start:slice_end])
+        start = end
+    return "".join(out_parts)
 
 
 def apply_masking(text: str, mode: str = "basic", custom_patterns: Iterable[str] | None = None) -> str:
@@ -67,21 +132,8 @@ def apply_masking(text: str, mode: str = "basic", custom_patterns: Iterable[str]
     else:
         rules = get_active_masking_rules(mode)
 
-    # Anti-ReDoS: avoid running regexes on extremely large payloads
+    # Anti-ReDoS: chunk large payloads but still mask (length-preserving).
     if len(text) > MAX_MASK_INPUT_CHARS:
-        return text
+        return _mask_large_text(text, rules, custom_patterns)
 
-    # Apply custom patterns first so project-specific rules run before bundled ones.
-    if custom_patterns:
-        for pattern in custom_patterns:
-            try:
-                compiled = re.compile(pattern, flags=re.DOTALL)
-                text = compiled.sub(CUSTOM_MASK_REPLACEMENT, text)
-            except re.error as exc:
-                print(f"[WARN] Skipping invalid custom mask pattern: {pattern!r} ({exc})")
-
-    for rule_name, pattern in rules.items():
-        replacement = PRO_MASK_REPLACEMENT if rule_name in ADVANCED_MASKING_RULES else MASK_REPLACEMENT
-        text = pattern.sub(replacement, text)
-
-    return text
+    return _apply_masking_rules(text, rules, custom_patterns, length_preserving=False)

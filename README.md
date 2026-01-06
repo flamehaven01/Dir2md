@@ -20,24 +20,20 @@ Dir2md converts directory structures into AI-friendly markdown with intelligent 
 
 **New to Dir2md?** Check out **[Wiki.md](docs/Wiki.md)** for a friendly introduction with examples.
 
-## Fresh highlights (1.2.1) - Security & Configuration Excellence
+## Fresh highlights (1.2.2) - Security Hardening & Compatibility
 
-**v1.2.1 (2025-12-18)** - Complete SIDRCE Spicy Audit response with advanced configuration system:
+**v1.2.2 (2026-01-06)** - Boundary-safe symlink handling, large-file masking, and deprecation-free pathspec matching:
 
-### Security & Reliability (5/5 Issues Resolved)
-- **CRITICAL**: Markdown fence injection prevention (dynamic escaping)
-- **HIGH**: Subprocess RCE vector eliminated (vulture removal)
-- **MEDIUM**: Silent exception failures fixed (logging added)
-- **LOW**: Aggressive glob expansion removed (user intent respected)
-- **LOW**: Hardcoded excludes externalized (defaults.json)
+### Security & Reliability
+- **CRITICAL**: Symlinked directory traversal now blocked when it escapes root
+- **CRITICAL**: Large-file masking now chunked (no unmasked bypass)
+- **COMPAT**: PathSpec updated to `gitignore` engine to remove deprecation warnings
 
-### Advanced Configuration System
+### Configuration System (unchanged, still 1.2.1)
 - **3-Tier Priority**: User CLI > Project config > System defaults
 - **`--defaults-file`**: Custom defaults.json path support
 - **`pyproject.toml`**: `[tool.dir2md.excludes]` project-level configuration
 - **Flexible & Safe**: Graceful fallback on configuration errors
-
-**Grade Improvement**: SIDRCE C+ → A (90-94 points)
 
 ---
 
@@ -83,6 +79,7 @@ dir2md . --ai-mode --query "atuh"  # Typo? No problem - auto-corrected to "auth"
 dir2md . --preset raw  # Pure original, no optimizations
 ```
 
+**What's new in v1.2.2?** Root-safe symlink handling, large-file masking, and cleaner pathspec matching.
 **What's new in v1.2.1?** Enterprise-grade security fixes + flexible 3-tier configuration system.
 **What changed in v1.2.0?** All intelligence is now automatic. Just choose your preset - the system handles the rest.
 
@@ -282,13 +279,13 @@ python -m pytest -v
 
 ## Quality & Certification
 
-**SIDRCE Certified** — ID: SIDRCE-DIR2MD-20251218-v1.2.1
+**SIDRCE Certified** — ID: SIDRCE-DIR2MD-20260106-v1.2.2
 Grade: **A (90-94/100)** — Security: A+ | Reliability: A | Performance: A | Maintainability: A
 
-**v1.2.1 Improvements:**
-- 5/5 Critical security issues resolved (Spicy Audit)
-- Advanced 3-tier configuration system
-- 100% test coverage on patched modules
+**v1.2.2 Improvements:**
+- Root-safe symlink traversal when following links
+- Large-file masking now chunked (no bypass)
+- PathSpec matching moved to gitignore engine (no deprecation warnings)
 - Production-ready with enterprise-grade quality
 
 Architecture follows distributed responsibility patterns with comprehensive test coverage and deterministic cross-platform behavior.

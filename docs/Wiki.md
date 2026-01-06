@@ -2,6 +2,7 @@
 
 ## What it does (TL;DR)
 - Scans a repo and produces both **human-friendly Markdown** and **LLM-ready JSON/JSONL** in one shot.
+- **NEW v1.2.2**: Root-safe symlink handling + large-file masking (no bypass) + deprecation-free pathspec matching.
 - **NEW v1.2.1**: Enterprise-grade security (5 critical fixes) + flexible 3-tier configuration system.
 - **NEW v1.2.0**: Zero-config intelligence (60-70% token reduction) with Gravitas compression, smart query, and AST sampling.
 - Smart sampling + token budgeting to avoid overloading models.
@@ -14,6 +15,7 @@
 - **PR / Code Review**: Drop the JSONL straight into your LLM to review a large codebase without token waste.
 - **Safety & Quality**: Spicy highlights risky spots; masking protects tokens/keys/PEM/JWT/DB URLs.
 - **Reproducible**: Cache/venv noise auto-excluded; `--no-timestamp` keeps outputs stable for CI.
+- **NEW v1.2.2**: Root-safe symlink traversal + large-file masking + cleaner pathspec matching.
 - **NEW v1.2.1**: Enterprise security (Markdown injection prevention, RCE elimination) + flexible configuration.
 - **NEW v1.2.0**: Automatic 60-70% token reduction with zero configuration overhead.
 
@@ -29,6 +31,11 @@
 - **3-Tier Priority System**: User CLI > Project config (pyproject.toml) > System defaults (defaults.json)
 - **Flexible Configuration**: `--defaults-file` for custom defaults, `[tool.dir2md.excludes]` for project-level patterns
 
+### Security & Compatibility (v1.2.2)
+- **Symlink Guard**: Followed symlinked directories must stay inside root
+- **Large-File Masking**: Masking now chunks large inputs to avoid bypass
+- **PathSpec Engine**: Uses `gitignore` matcher to avoid deprecation warnings
+
 ### Core Features
 - **Sampling & Budgets**: Head/tail sampling, token estimates; auto-skip when budgets would overflow.
 - **SimHash Dedup**: Filters near-duplicate files/build artifacts.
@@ -42,6 +49,7 @@
 - **JSONL (.jsonl)**: One line per file (path, content/snippet, meta) plus spicy summary — ideal for LLM ingest/vector DB.
 
 ## Defaults you get out of the box
+- **v1.2.2**: Root-safe symlink traversal + large-file masking (no bypass)
 - **v1.2.1**: Flexible 3-tier exclusion system (user > project > system defaults)
 - **v1.2.0**: Auto-enabled intelligence (Gravitas + Smart Query + AST in `pro`/`ai` presets)
 - Spicy ON (disable with `--no-spicy`; gate with `--spicy-strict`)
@@ -92,6 +100,7 @@ dir2md .  # Automatically uses project config
 ## Why it feels good to use
 - **Saves time**: No manual tree/sampling; outputs tailored for humans and LLMs simultaneously.
 - **Reduces risk**: Masking + Spicy risk surfacing by default; v1.2.1 eliminates critical security vulnerabilities.
+- **Safer by default**: v1.2.2 blocks symlink escapes and preserves masking on large files.
 - **Minimal setup**: Caches/venvs ignored by default; reproducible outputs.
 - **Intelligent**: v1.2.0 auto-optimizations reduce tokens by 60-70% with zero configuration.
 - **Flexible**: v1.2.1 3-tier configuration system adapts to any workflow (user > project > system).
